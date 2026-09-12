@@ -225,6 +225,113 @@ int run_workerw() {
     return 0;
 }
 
+// The watchdog handshake, and why the CLI cannot do without it.
+//
+// A wallpaper is a *child process with a window parented to the desktop*. If the
+// process that owns it dies without cleaning up — Ctrl+C, the console window being
+// closed, Task Manager — the player survives with nothing left to close it, and the
+// user is left with a video stuck behind their icons and no UI to remove it. That is
+// the exact problem Lively.Utility.Watchdog exists to solve, and upstream solves it
+// by handing the parent's own pid to a small helper that outlives it:
+//
+//     lively_watchdog.exe <parent pid>      (stdin: ADD <pid> | RMV <pid> | CLR)
+//
+// The helper blocks on the parent's handle and, when it signals, kills every pid on
+// its watchlist and forces a desktop refresh. So the participant protocol is: spawn
+// it once, ADD each player as it starts, and let it be the thing that survives.
+//
+// This uses the already-ported watchdog rather than a console control handler,
+// because a handler only covers Ctrl+C — not a kill, not a closed console.
+class WatchdogHost {
+public:
+    ~WatchdogHost() { close_stdin(); }
+
+    bool start(const std::filesystem::path& app_base) {
+#ifdef _WIN32
+        const std::filesystem::path exe = app_base / "lively_watchdog.exe";
+        if (!std::filesystem::exists(exe))
+            return false;   // built separately; a missing watchdog is not fatal
+
+        SECURITY_ATTRIBUTES attributes{};
+        attributes.nLength = sizeof(attributes);
+        attributes.bInheritHandle = TRUE;
+        HANDLE read_end = nullptr;
+        if (!CreatePipe(&read_end, &stdin_write_, &attributes, 0))
+            return false;
+        SetHandleInformation(stdin_write_, HANDLE_FLAG_INHERIT, 0);
+
+        STARTUPINFOW startup{};
+        startup.cb = sizeof(startup);
+        startup.dwFlags = STARTF_USESTDHANDLES;
+        startup.hStdInput = read_end;
+        startup.hStdOutput = GetStdHandle(STD_OUTPUT_HANDLE);
+        startup.hStdError = GetStdHandle(STD_ERROR_HANDLE);
+
+        // argv[1] is OUR pid: the watchdog waits on it and cleans up when it goes.
+        std::wstring command_line = L"\"" + exe.wstring() + L"\" " +
+                                    std::to_wstring(GetCurrentProcessId());
+        std::vector<wchar_t> mutable_command_line(command_line.begin(), command_line.end());
+        mutable_command_line.push_back(L'\0');
+
+        PROCESS_INFORMATION info{};
+        const BOOL ok = CreateProcessW(exe.wstring().c_str(), mutable_command_line.data(),
+                                       nullptr, nullptr, TRUE, 0, nullptr,
+                                       app_base.wstring().c_str(), &startup, &info);
+        CloseHandle(read_end);
+        if (!ok) {
+            CloseHandle(stdin_write_);
+            stdin_write_ = nullptr;
+            return false;
+        }
+        watchdog_process_ = info.hProcess;
+        CloseHandle(info.hThread);
+        return true;
+#else
+        (void)app_base;
+        return false;
+#endif
+    }
+
+    // Registers a player pid so the watchdog kills it if we die first.
+    void add(int pid) { send("ADD " + std::to_string(pid)); }
+    void remove(int pid) { send("RMV " + std::to_string(pid)); }
+    void clear() { send("CLR"); }
+
+    void close_stdin() {
+#ifdef _WIN32
+        if (stdin_write_) {
+            // Closing our end of the pipe is what tells the watchdog there is
+            // nothing more to register — it then just waits for us to exit.
+            CloseHandle(stdin_write_);
+            stdin_write_ = nullptr;
+        }
+        if (watchdog_process_) {
+            CloseHandle(watchdog_process_);
+            watchdog_process_ = nullptr;
+        }
+#endif
+    }
+
+private:
+    void send(const std::string& line) {
+#ifdef _WIN32
+        if (!stdin_write_)
+            return;
+        const std::string payload = line + "\r\n";
+        DWORD written = 0;
+        WriteFile(stdin_write_, payload.data(), static_cast<DWORD>(payload.size()), &written,
+                  nullptr);
+#else
+        (void)line;
+#endif
+    }
+
+#ifdef _WIN32
+    HANDLE stdin_write_ = nullptr;
+    HANDLE watchdog_process_ = nullptr;
+#endif
+};
+
 // lively_core adopt-test — the diagnostic for the one part of this port that no
 // test can reach and that fails silently when it is wrong.
 //
@@ -483,6 +590,14 @@ int run_set(const SetOptions& options) {
 
     MpvWallpaper wallpaper(options.path, library_model, target, property_copy, base,
                            options.hw_decode);
+
+    // Start the watchdog BEFORE the player, so there is no window in which a crash
+    // leaves an unkillable wallpaper on the desktop.
+    WatchdogHost watchdog;
+    const bool watchdog_started = watchdog.start(app_base_directory());
+    std::printf("watchdog : %s\n",
+                watchdog_started ? "running (kills the player if this process dies)"
+                                 : "not found next to lively_core (build lively_watchdog)");
     std::printf("launching mpv host (pid will follow)\n");
     std::printf("  ipc pipe : %s\n", wallpaper.ipc_server_name().c_str());
 
@@ -502,6 +617,14 @@ int run_set(const SetOptions& options) {
     std::printf("  window   : 0x%p\n", static_cast<void*>(wallpaper.handle()));
 #endif
     std::printf("  loaded   : %s\n", loaded ? "yes" : "no");
+
+    // Register the player with the watchdog the moment its pid exists — NOT after
+    // the run loop. Registering late is the same as not registering at all: the
+    // window between the player starting and the registration is exactly when a
+    // crash strands a wallpaper on the desktop, and a long --seconds puts the
+    // registration an hour away from the risk it is supposed to cover.
+    if (watchdog_started && wallpaper.pid() != kNoProcessId)
+        watchdog.add(wallpaper.pid());
 
     auto report_mpv_output = [&](const char* stage) {
         const std::string output = wallpaper.drain_output();
@@ -622,6 +745,11 @@ int run_set(const SetOptions& options) {
             std::this_thread::sleep_for(std::chrono::milliseconds(50));
         wallpaper.terminate();
     }
+    // A clean exit still leaves the pid registered; clearing it keeps the watchdog's
+    // shutdown from chasing a pid that the OS may have recycled by then.
+    if (watchdog_started && wallpaper.pid() != kNoProcessId)
+        watchdog.remove(wallpaper.pid());
+    watchdog.close_stdin();
     std::printf("done.\n");
     return 0;
 }
@@ -629,6 +757,11 @@ int run_set(const SetOptions& options) {
 } // namespace
 
 int main(int argc, char** argv) {
+    // Unbuffered: these commands print progress while a wallpaper is on screen, and
+    // when stdout is a pipe or a file (as in the watchdog test) a block-buffered
+    // stream would hold every line until exit — i.e. exactly when the output is most
+    // needed to diagnose a hang.
+    std::setvbuf(stdout, nullptr, _IONBF, 0);
 #ifdef _WIN32
     // The picture wallpaper path calls COM, and the mpv path uses
     // GetWindowRect/SetWindowPos on handles owned by another process. STA is what

@@ -296,6 +296,15 @@ protobuf 35.1 —
   them — the pipe name, the CRLF framing and the JSON shape all have to be right,
   and a frame on disk is evidence that they are. It also proved the option string:
   mpv logged no unknown-option error and reached `VO: [gpu-next]`.
+- **The crash path**: a wallpaper is a child process with a window parented to the
+  desktop, so if the owning process dies without cleaning up, the user is left with
+  a video stuck behind their icons and no UI to remove it. `lively_core set` spawns
+  the already-ported `lively_watchdog.exe` with its own pid and registers the player
+  immediately, so the watchdog outlives it and kills the player when it goes.
+  Verified by `Stop-Process -Name lively_core -Force` mid-wallpaper: nothing is left
+  behind. Registering the player *after* the run loop instead of right after it
+  starts was the first version of this, and it silently protected nothing — a
+  `--seconds=90` put the registration 90 seconds away from the risk.
 - **Gallery / services / HTTP**: a raw loopback HTTP server exercises the WinHTTP
   layer and the gallery client — token refresh on 401, the `AlreadySubscribed`
   rethrow path, subscription events, health, download progress and the
@@ -333,6 +342,10 @@ lively_core set <path> [options]           # show a wallpaper (mpv host or
 `workerw` and `adopt-test` leave nothing behind: `adopt-test` never touches
 `IDesktopWallpaper` or `SystemParametersInfo`, so the user's own background is
 untouched and returns as soon as the window is destroyed.
+
+`set` starts `lively_watchdog.exe` (built alongside `lively_core`) automatically,
+so Ctrl+C, closing the console, or killing the process does not strand a player on
+the desktop. If the watchdog binary is missing, `set` says so and continues.
 
 `set` also takes `--volume=<0-100>`, `--scaler=<name>`, `--pause-probe` and
 `--screenshot=<file>`; each is applied *over IPC after the wallpaper is loaded*,
