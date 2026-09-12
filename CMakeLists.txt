@@ -145,12 +145,33 @@ add_library(lively_utility STATIC
   src/lively/utility/commandline/commandline.cpp
   src/lively/utility/watchdog/watchdog_core.cpp)
 
-# The pure decision half of the core (Lively/Core/WinDesktopCore.cs): which
-# wallpaper belongs on which screen when displays come and go. Deliberately
-# Win32-free so it is testable — see include/lively/core/desktop_layout.h.
-add_library(lively_core STATIC src/lively/core/desktop_layout.cpp)
+# The core (Lively/Core). Two halves:
+#   desktop_layout.cpp — the pure decision half of WinDesktopCore.cs: which
+#     wallpaper belongs on which screen when displays come and go. Deliberately
+#     Win32-free so it is testable — see include/lively/core/desktop_layout.h.
+#   mpv.cpp / picture_wallpaper.cpp / win32 — the wallpaper runtime: the mpv
+#     child process + IPC protocol, the IDesktopWallpaper picture wallpaper, and
+#     the WorkerW desktop adoption.
+add_library(lively_core STATIC
+  src/lively/core/desktop_layout.cpp
+  src/lively/core/desktop.cpp
+  src/lively/core/display_manager.cpp
+  src/lively/core/mpv.cpp
+  src/lively/core/mpv_wallpaper.cpp
+  src/lively/core/picture_wallpaper.cpp
+  src/lively/core/win32/window_util.cpp
+  src/lively/core/win32/desktop_util.cpp
+  src/lively/core/win32/child_process.cpp)
 target_include_directories(lively_core PUBLIC include)
-target_link_libraries(lively_core PUBLIC lively_models)
+target_link_libraries(lively_core PUBLIC lively_models lively_common)
+if(WIN32)
+  # ole32: CoCreateInstance for CLSID_DesktopWallpaper (the C# gets it from the
+  # `new DesktopWallpaperClass()` COM interop). dwmapi: DwmGetWindowAttribute
+  # for the cloaked-window check in WindowUtil.IsCloakedWindow. user32 is implied
+  # by the MinGW default libraries.
+  target_link_libraries(lively_core PUBLIC ole32 dwmapi)
+  target_compile_definitions(lively_core PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN)
+endif()
 
 # Per-player StartArgs contract (Lively.Player.*) — shares the CommandLineParser port.
 add_library(lively_players STATIC src/lively/players/start_args.cpp)
@@ -159,6 +180,14 @@ target_link_libraries(lively_players PUBLIC lively_utility lively_models)
 target_include_directories(lively_models PUBLIC include)
 target_include_directories(lively_utility PUBLIC include)
 target_link_libraries(lively_utility PUBLIC lively_models)
+
+# The desktop core: WorkerW adoption, the wallpaper factory and the player hosts.
+# It is the only target that can put a wallpaper on a real desktop, so it is the
+# binary the Win32 half of the port is judged on (see docs and the README's
+# "Running the core" section).
+add_executable(lively_core_app src/lively/core/main.cpp)
+set_target_properties(lively_core_app PROPERTIES OUTPUT_NAME lively_core)
+target_link_libraries(lively_core_app PRIVATE lively_core lively_common)
 
 add_executable(lively_watchdog src/lively/utility/watchdog/main.cpp)
 target_link_libraries(lively_watchdog PRIVATE lively_utility)
@@ -248,7 +277,9 @@ if(LIVELY_BUILD_TESTS)
     tests/test_library.cpp
     tests/test_layout.cpp
     tests/test_persist.cpp
-    tests/test_desktop_layout.cpp)
+    tests/test_desktop_layout.cpp
+    tests/test_wallpaper.cpp
+    tests/test_win32.cpp)
   target_link_libraries(lively_tests PRIVATE lively_models lively_common lively_utility lively_players
     lively_core Catch2::Catch2WithMain)
   if(LIVELY_BUILD_RPC)

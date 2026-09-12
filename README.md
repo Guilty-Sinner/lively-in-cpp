@@ -26,8 +26,12 @@ requirements document; every mapping below is deliberate.
 | Lively.Player.CefSharp | 1,346 | `StartArgs` contract **ported + oracle-verified**; window/rendering not started | `src/lively/players` |
 | Lively.ML | 193 | **Ported** — MiDaS depth estimation over the onnxruntime C API with WIC image decode/resize; runtime API-version negotiation (see *Toolchain note*) | `src/lively/ml` |
 | Lively.Common | 9,253 | Remaining: Helpers/{Shell,Hardware,Pinvoke,MVVM}, COM interop — Phase 2 | — |
-| Lively (core) — placement rules | ~700 of 15,815 | **Ported** — the per/span/duplicate reconciliation from `WinDesktopCore`: orphan detection, the selected-display fallback, the disconnected-screen queue, the wallpaper-rect rebasing and `SaveWallpaperLayout` composition, all as a pure Win32-free planner verified against a C# oracle. The Win32 effects (WorkerW parenting, window geometry, process lifecycle) are **not** ported | `src/lively/core`, `include/lively/core` |
-| Lively (core) | 15,815 | Remaining: WorkerW desktop integration, wallpaper lifecycle, the player host — Phase 2 | — |
+| Lively (core) — placement rules | ~700 of 15,815 | **Ported** — the per/span/duplicate reconciliation from `WinDesktopCore`: orphan detection, the selected-display fallback, the disconnected-screen queue, the wallpaper-rect rebasing and `SaveWallpaperLayout` composition, all as a pure Win32-free planner verified against a C# oracle | `src/lively/core`, `include/lively/core` |
+| Lively (core) — display manager | 299 | **Ported** — `DisplayManager`: monitor enumeration, the reuse-by-DeviceName refresh with the `isStale` sweep, and the synthetic device-id fallback (`\\?\DISPLAY#LOCALDISPLAY#` + SHA-256 of the bounds string) that gives a device-path-less monitor an identity. Real-device enumeration confirmed on a live multi-monitor Windows 11 machine | `src/lively/core` |
+| Lively (core) — WorkerW desktop | ~600 of 1,327 (WinDesktopCore) | **Ported** — `SetupDesktopLayer` (all three regimes: Windows 7, the WorkerW sibling, and the Windows 11 raised desktop with a layered ShellView), `TryAttachToDesktop`, `EnsureWorkerWZOrder`, `RefreshDesktop`, the per-screen/span rect math, plus the `WindowUtil` / `DesktopUtil` / process helpers and `IDesktopWallpaper`. Verified end to end on a real desktop by `lively_core adopt-test` | `src/lively/core`, `src/lively/core/win32` |
+| Lively (core) — wallpaper runtime | ~1,400 (players + factory) | **Ported** — the mpv host (`VideoMpvPlayer`: option string, named-pipe IPC, window wait, chrome stripping, LivelyProperties push, scaler control, file screenshot), the `IDesktopWallpaper` picture wallpaper, and `WpPluginFactory`'s mpv/picture branches. The remaining player hosts (Wmf/Vlc/WebView2/CefSharp windows) are **not** ported | `src/lively/core` |
+| Lively.Utility.Screensaver | 64 | Not started (needs the core's screensaver service) | — |
+| Lively (core) | 15,815 | Remaining: `ScreensaverService`, the suspend/playback policy, the tray icon, the Wmf/Vlc/WebView2/CefSharp player hosts, the remaining RPC servers and the remaining `Lively.Common` helpers | — |
 | Lively.UI.Shared / UI.WinUI | 11,284 | Not started (Phase 3, C++/WinRT) | — |
 
 ## Translation map (per `prompt.txt`)
@@ -130,6 +134,46 @@ requirements document; every mapping below is deliberate.
    Note the probe also records that a layout entry with a **null Display** makes
    the C# throw `NullReferenceException` during restore; the port treats it as
    "screen missing" and documents the deviation rather than reproducing the crash.
+13. **Wallpaper runtime** (`tests/goldens/wallpaper_csharp.txt`, from
+    `csharp_probe wallpaper`): the mpv host's option string, its JSON IPC
+    commands, and both scaler mappings. The mpv part is a *verbatim
+    re-expression* in the probe (the class lives in the WPF app project, which a
+    console probe cannot reference) while the IPC JSON is produced by the real
+    Newtonsoft serializer, and the port re-expresses the builder as sequential
+    string appends — so the transcript is the contract, not a fixture the port was
+    written to satisfy. It pins the things a tidy port changes:
+    `Environment.NewLine` is **CRLF** (an LF command is silently ignored by mpv,
+    which looks like "the controls do nothing"); a float renders as `1.5` but
+    `-3.0`; the gif branch appends `--scale=nearest ` and every other type appends
+    a **single stray space**, so the two command lines differ by more than the
+    option; `--no-border` vs `--border=yes` is driven by `isWindowed`; the path is
+    wrapped in literal quotes **with no escaping** (an embedded quote passes
+    through to mpv's parser); `--config-dir="..."` is quoted too and is replaced
+    wholesale by `--no-config` when no portable config directory exists; and for a
+    video stream the URL is **not** quoted at all and `--ytdl-format=` is glued onto
+    the same argument, because C# parses `link + quality switch { ... }` as
+    `link + (switch)`.
+14. **Display identity and desktop adoption**: `DisplayMonitor.Equals` compares
+    DeviceId only, and a monitor Windows reports without a device interface path
+    gets `\\?\DISPLAY#LOCALDISPLAY#` + lowercase-hex SHA-256 of `"<x>-<y>-<w>-<h>"`.
+    That fallback is what lets an unplugged-and-replugged monitor resume its
+    wallpaper (same geometry ⇒ same id) and what makes *moving* such a monitor
+    change its identity — a real C# behaviour, pinned against independently
+    computed digests in `tests/test_win32.cpp`. The same file pins the coverage
+    predicates the suspend/screensaver logic is built on, whose grid quantizes to
+    whole 50px tiles (one tile row is 4.55% of a 1920x1080 screen, so a wallpaper
+    with a 50px strip missing still counts the desktop as covered).
+
+    The adoption itself cannot be transcript-verified, so it has a **self-test
+    instead**: `lively_core adopt-test` parents a plain window onto the desktop the
+    way a player window is parented, holds it, and reports the result. It caught a
+    real trap on its first run — an adopted window carries `WS_POPUP` *and*
+    `WS_CHILD` at once, and for such a window `GetParent` answers the popup branch
+    and returns **NULL** even though the reparenting succeeded; `GetAncestor(hwnd,
+    GA_PARENT)` is the accessor that tells the truth. `WindowUtil.TrySetParent`'s
+    `SetParent(...) != NULL` test is uninformative for exactly the same reason (a
+    top-level window's "previous parent" is not NULL), so it is reproduced as the
+    C# has it and the adoption verdict is taken from `GA_PARENT`.
 
 ## Verification strategy
 
@@ -137,8 +181,8 @@ requirements document; every mapping below is deliberate.
   C# binaries (run `dotnet run --project "lively in C#/src/Lively/Lively.Utility.ConsoleDemo"`)
   are compared byte-for-byte against C++ output. Regenerate a specific one with the probe:
   `dotnet run -c Release --project tools/csharp_probe -- <mode>` where `<mode>` is
-  `library` / `layout` / `persist` / `desktoplayout` / `props` / `settings` / `players` / a bare
-  run for the IPC fixtures — see `tools/generate_csharp_goldens.md`.
+  `library` / `layout` / `persist` / `desktoplayout` / `wallpaper` / `props` / `settings` /
+  `players` / a bare run for the IPC fixtures — see `tools/generate_csharp_goldens.md`.
 - **Differential fuzzing** (`tools/fuzz_differential.py`): the same generated argv is
   fed to the real C# `CommandLineParser` (via `tools/csharp_probe fuzz`) and to the C++
   binary; the canonical outcome lines must match. 4,500+ verb cases and 1,500 player-args
@@ -167,10 +211,12 @@ powershell -ExecutionPolicy Bypass -File tools/run_tests.ps1
 ```
 
 Targets: `lively_models` (static lib), `lively_utility`, `lively_watchdog` (exe),
-`lively_cmd` (exe), `lively_console_demo` (exe), `lively_tests` (Catch2),
-and with gRPC: `lively_rpc` (proto bindings + the five gRPC clients).
+`lively_cmd` (exe), `lively_console_demo` (exe), `lively_core` (exe — the desktop
+core), `lively_tests` (Catch2), and with gRPC: `lively_rpc` (proto bindings + the
+five gRPC clients).
 Libraries: `lively_net` (WinHTTP), `lively_gallery`, `lively_services`, `lively_ml`,
-`lively_players`.
+`lively_players`, `lively_core` (the core: layout, displays, the mpv host,
+`IDesktopWallpaper`, WorkerW adoption).
 
 The oracle tests that shell out to the C# probe are hidden from a plain run
 (`[.crosslang]`, `[.players-oracle]`), so `ctest` never discovers them; run them
@@ -224,12 +270,18 @@ Current verified environment: MinGW-w64 GCC 16.1 (WinLibs UCRT, via winget
 `BrechtSanders.WinLibs.POSIX.UCRT`), CMake 4.4, MSYS2 UCRT64 gRPC 1.82 +
 protobuf 35.1 —
 
-- **RPC-off build**: 85 test cases / 992 assertions, all passing.
-- **RPC-on build**: 92 test cases / 1,100 assertions, all passing (stable across reruns),
+- **RPC-off build**: 99 test cases / 1,162 assertions, all passing.
+- **RPC-on build**: 106 test cases / 1,270 assertions, all passing (stable across reruns),
   including the `[.crosslang]` C++-client ↔ C#-server oracle test and the
   DesktopCore / DisplayManager / AppUpdater / UserSettings streaming + event tests.
-- **CI-like build** (no C# checkout on the include path): 92 / 1,100 — the same
+- **CI-like build** (no C# checkout on the include path): 106 / 1,270 — the same
   numbers as RPC-on, which is what makes the self-contained claim real.
+- **Desktop integration**: `lively_core workerw` on a live Windows 11 machine
+  reports both displays with real device interface paths and detects the raised
+  desktop (layered ShellView) correctly; `lively_core adopt-test` adopts a window
+  onto the desktop in both the per-screen and span paths and exits 0. Neither is a
+  unit test — there is no substitute for a real desktop, which is why the binary
+  exists.
 - **Gallery / services / HTTP**: a raw loopback HTTP server exercises the WinHTTP
   layer and the gallery client — token refresh on 401, the `AlreadySubscribed`
   rethrow path, subscription events, health, download progress and the
@@ -245,6 +297,43 @@ protobuf 35.1 —
 The cross-language test needs the C# probe built first:
 `dotnet build tools/csharp_probe -c Release` (requires the sibling `lively in C#`
 checkout + .NET SDK 8; the test fails with a clear message when absent).
+
+### Running the core
+
+`lively_core` is the part of the `Lively` project that exists without a UI toolkit:
+the desktop layer, the display manager, the wallpaper hosts. It is the only target
+that can put something on a real desktop, and therefore the only way to check the
+parts no test can reach.
+
+```
+lively_core workerw                        # the resolved Progman/WorkerW, the
+                                           # regime, and every monitor as the
+                                           # core sees it (device ids included)
+lively_core adopt-test [--span] [--seconds=n]
+                                           # parent a plain window onto the
+                                           # desktop the way a player is
+lively_core set <path> [options]           # show a wallpaper (mpv host or
+                                           # IDesktopWallpaper), then clean up
+```
+
+`workerw` and `adopt-test` leave nothing behind: `adopt-test` never touches
+`IDesktopWallpaper` or `SystemParametersInfo`, so the user's own background is
+untouched and returns as soon as the window is destroyed.
+
+`set` is the one command with visible side effects, and it is worth being precise
+about which:
+
+- A **video/gif/stream** wallpaper goes through the mpv child process and is
+  adopted onto the desktop. Closing it destroys the player window and leaves the
+  desktop background alone — nothing to restore.
+- A **picture** wallpaper is handed to Windows through `IDesktopWallpaper`, i.e. it
+  **replaces the user's desktop background**, and the C# does not restore it:
+  `PictureWinApi.RestoreWallpaper`'s body is commented out upstream (the port keeps
+  the bookkeeping and the empty restore, with the reason recorded in the header).
+- The mpv host needs the bundled player at `plugins/mpv/mpv.exe` next to the
+  binary, which is not part of this repository — the plugins are Lively's release
+  assets. Without it `set` fails with "Failed to start mpv", and that is the
+  expected outcome rather than a bug.
 
 ### Vendored dependencies
 

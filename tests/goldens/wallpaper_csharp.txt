@@ -1,0 +1,36 @@
+mpv.cmd.volume.int	{"command":["set_property","volume",50]}\r\n
+mpv.cmd.volume.zero	{"command":["set_property","volume",0]}\r\n
+mpv.cmd.pause.true	{"command":["set_property","pause",true]}\r\n
+mpv.cmd.pause.false	{"command":["set_property","pause",false]}\r\n
+mpv.cmd.slider.float	{"command":["set_property","speed",1.5]}\r\n
+mpv.cmd.slider.wholefloat	{"command":["set_property","speed",1.0]}\r\n
+mpv.cmd.slider.int32	{"command":["set_property","count",1]}\r\n
+mpv.cmd.aid.no	{"command":["set_property","aid","no"]}\r\n
+mpv.cmd.vid.int	{"command":["set_property","vid",1]}\r\n
+mpv.cmd.seek.abs	{"command":["seek",12.5,"absolute-percent"]}\r\n
+mpv.cmd.seek.rel	{"command":["seek",-3.0,"relative-percent"]}\r\n
+mpv.cmd.name.quoted	{"command":["set_property","a\"b","c\\d"]}\r\n
+mpv.cmd.screenshot	{"command":["screenshot-to-file","C:\\tmp\\shot.jpg"]}\r\n
+mpv.cmd.scaler.keepaspect.yes	{"command":["set_property","keepaspect","yes"]}\r\n
+mpv.args.video	--volume=0 --msg-level=all=info --loop-file --keep-open --media-controls=no --geometry=-9999:0 --force-window=yes --no-window-dragging --cursor-autohide=no --window-minimized=yes --stop-screensaver=no --input-default-bindings=no --no-border --input-cursor=no --no-osc --input-ipc-server=mpvsocket<RANDOM>  --hwdec=auto-safe --target-colorspace-hint-mode=target --no-config "C:\wp\clip.mp4"
+mpv.args.video.windowed	--volume=0 --msg-level=all=info --loop-file --keep-open --media-controls=no --geometry=-9999:0 --force-window=yes --no-window-dragging --cursor-autohide=no --window-minimized=yes --stop-screensaver=no --input-default-bindings=no --border=yes --input-cursor=no --no-osc --input-ipc-server=mpvsocket<RANDOM>  --hwdec=auto-safe --target-colorspace-hint-mode=target --no-config "C:\wp\clip.mp4"
+mpv.args.video.nohw	--volume=0 --msg-level=all=info --loop-file --keep-open --media-controls=no --geometry=-9999:0 --force-window=yes --no-window-dragging --cursor-autohide=no --window-minimized=yes --stop-screensaver=no --input-default-bindings=no --no-border --input-cursor=no --no-osc --input-ipc-server=mpvsocket<RANDOM>  --hwdec=no --target-colorspace-hint-mode=source --no-config "C:\wp\clip.mp4"
+mpv.args.gif	--volume=0 --msg-level=all=info --loop-file --keep-open --media-controls=no --geometry=-9999:0 --force-window=yes --no-window-dragging --cursor-autohide=no --window-minimized=yes --stop-screensaver=no --input-default-bindings=no --no-border --input-cursor=no --no-osc --input-ipc-server=mpvsocket<RANDOM> --scale=nearest --hwdec=auto-safe --target-colorspace-hint-mode=source-dynamic --no-config "C:\wp\anim.gif"
+mpv.args.stream	--volume=0 --msg-level=all=info --loop-file --keep-open --media-controls=no --geometry=-9999:0 --force-window=yes --no-window-dragging --cursor-autohide=no --window-minimized=yes --stop-screensaver=no --input-default-bindings=no --no-border --input-cursor=no --no-osc --input-ipc-server=mpvsocket<RANDOM>  --hwdec=auto-safe --target-colorspace-hint-mode=target --no-config https://youtu.be/x --ytdl-format=bestvideo[height<=480]+bestaudio/best
+mpv.args.stream.high	--volume=0 --msg-level=all=info --loop-file --keep-open --media-controls=no --geometry=-9999:0 --force-window=yes --no-window-dragging --cursor-autohide=no --window-minimized=yes --stop-screensaver=no --input-default-bindings=no --no-border --input-cursor=no --no-osc --input-ipc-server=mpvsocket<RANDOM>  --hwdec=auto-safe --target-colorspace-hint-mode=target --no-config https://youtu.be/x --ytdl-format=bestvideo+bestaudio/best
+mpv.args.stream.lowest	--volume=0 --msg-level=all=info --loop-file --keep-open --media-controls=no --geometry=-9999:0 --force-window=yes --no-window-dragging --cursor-autohide=no --window-minimized=yes --stop-screensaver=no --input-default-bindings=no --no-border --input-cursor=no --no-osc --input-ipc-server=mpvsocket<RANDOM>  --hwdec=auto-safe --target-colorspace-hint-mode=target --no-config https://youtu.be/x --ytdl-format=bestvideo[height<=144]+bestaudio/best
+mpv.args.web	--volume=0 --msg-level=all=info --loop-file --keep-open --media-controls=no --geometry=-9999:0 --force-window=yes --no-window-dragging --cursor-autohide=no --window-minimized=yes --stop-screensaver=no --input-default-bindings=no --no-border --input-cursor=no --no-osc --input-ipc-server=mpvsocket<RANDOM>  --hwdec=auto-safe --target-colorspace-hint-mode=target --no-config "https://example.com/"
+mpv.args.picture	--volume=0 --msg-level=all=info --loop-file --keep-open --media-controls=no --geometry=-9999:0 --force-window=yes --no-window-dragging --cursor-autohide=no --window-minimized=yes --stop-screensaver=no --input-default-bindings=no --no-border --input-cursor=no --no-osc --input-ipc-server=mpvsocket<RANDOM>  --hwdec=auto-safe --target-colorspace-hint-mode=target --no-config "C:\wp\still.jpg"
+mpv.args.quotes	--volume=0 --msg-level=all=info --loop-file --keep-open --media-controls=no --geometry=-9999:0 --force-window=yes --no-window-dragging --cursor-autohide=no --window-minimized=yes --stop-screensaver=no --input-default-bindings=no --no-border --input-cursor=no --no-osc --input-ipc-server=mpvsocket<RANDOM>  --hwdec=auto-safe --target-colorspace-hint-mode=target --no-config "C:\wp\a b"c.mp4"
+mpv.args.configdir	--volume=0 --msg-level=all=info --loop-file --keep-open --media-controls=no --geometry=-9999:0 --force-window=yes --no-window-dragging --cursor-autohide=no --window-minimized=yes --stop-screensaver=no --input-default-bindings=no --no-border --input-cursor=no --no-osc --input-ipc-server=mpvsocket<RANDOM>  --hwdec=auto-safe --target-colorspace-hint-mode=target --config-dir="<BASE>\plugins\mpv\portable_config" "C:\wp\clip.mp4"
+mpv.scaler.none	{"command":["set_property","keepaspect","yes"]}\r\n {"command":["set_property","video-unscaled","yes"]}\r\n
+mpv.scaler.fill	{"command":["set_property","video-unscaled","no"]}\r\n {"command":["set_property","keepaspect","no"]}\r\n
+mpv.scaler.uniform	{"command":["set_property","panscan","0.0"]}\r\n {"command":["set_property","video-unscaled","no"]}\r\n {"command":["set_property","keepaspect","yes"]}\r\n
+mpv.scaler.uniformFill	{"command":["set_property","video-unscaled","no"]}\r\n {"command":["set_property","keepaspect","yes"]}\r\n {"command":["set_property","panscan","1.0"]}\r\n
+mpv.scaler.auto	
+picture.scaler.none	Center
+picture.scaler.fill	Stretch
+picture.scaler.uniform	Fit
+picture.scaler.uniformFill	Fill
+picture.scaler.auto	Fill
+picture.span	Span

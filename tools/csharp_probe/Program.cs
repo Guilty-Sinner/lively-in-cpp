@@ -66,6 +66,10 @@ namespace csharp_probe
             {
                 return DesktopLayoutProbe.Run();
             }
+            if (args.Length > 0 && args[0] == "wallpaper")
+            {
+                return WallpaperProbe.Run();
+            }
 
             Emit("LivelyCloseCmd.default", new LivelyCloseCmd());
             Emit("LivelySuspendCmd.default", new LivelySuspendCmd());
@@ -116,6 +120,13 @@ namespace csharp_probe
             button.Name = "Apply";
             button.IsDefault = true;
             Emit("LivelyButton.default", button);
+
+            // The scaler dropdown the mpv host reads as a WallpaperScaler ordinal
+            // (MessageType.lp_dropdown_scaler).
+            var scalerDropdown = new LivelyDropdownScaler();
+            scalerDropdown.Name = "Scaler";
+            scalerDropdown.Value = 3;
+            Emit("LivelyDropdownScaler.populated", scalerDropdown);
 
             var colorPicker = new LivelyColorPicker();
             colorPicker.Name = "Tint";

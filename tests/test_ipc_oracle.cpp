@@ -80,6 +80,10 @@ TEST_CASE("C++ IPC wire output equals captured C# Newtonsoft output", "[ipc][gol
     LivelyColorPicker color_picker;
     color_picker.name = "Tint";
     color_picker.value = "#FFAA00";
+    // Read by the mpv host as a WallpaperScaler ordinal (lp_dropdown_scaler).
+    LivelyDropdownScaler scaler_dropdown;
+    scaler_dropdown.name = "Scaler";
+    scaler_dropdown.value = 3;
     LivelyMessageConsole unicode;
     unicode.message = "\u58c1\u7d19 \"test\"\nline2"; // 壁紙
 
@@ -99,6 +103,7 @@ TEST_CASE("C++ IPC wire output equals captured C# Newtonsoft output", "[ipc][gol
         {"LivelyDropdown.populated", wire(dropdown)},
         {"LivelyButton.default", wire(button)},
         {"LivelyColorPicker.populated", wire(color_picker)},
+        {"LivelyDropdownScaler.populated", wire(scaler_dropdown)},
         {"LivelyMessageConsole.unicode", wire(unicode)},
     };
 

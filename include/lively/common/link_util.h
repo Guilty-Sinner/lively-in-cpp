@@ -30,6 +30,12 @@ std::string get_last_segment_url(const std::string& url);
 // Stable, hostname-safe identifier for the directory containing `file_path`.
 std::string get_stable_host_name(const std::string& file_path);
 
+// Lowercase hex SHA-256 of an in-memory buffer (BCrypt on Windows).
+// DisplayManager.GetDefaultDisplayDeviceId hashes a monitor's bounds string with
+// System.Security.Cryptography.SHA256.HashData and BitConverter.ToString, i.e.
+// 32 bytes as 64 lowercase hex characters with no separators.
+std::string sha256_hex(const std::string& data);
+
 // Throws std::invalid_argument for empty/whitespace input and for text that
 // cannot become a URI (the C# ArgumentException / UriFormatException paths).
 std::string sanitize_url(const std::string& address);

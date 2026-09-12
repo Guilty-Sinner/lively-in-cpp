@@ -243,6 +243,20 @@ public:
     std::string value;
 };
 
+// public string Name; public int Value — MessageType.lp_dropdown_scaler.
+// Sent by the UI when the user changes the scaler dropdown; the mpv host reads
+// Value as the Lively WallpaperScaler ordinal (see MpvWallpaper::update_scaler).
+class LivelyDropdownScaler final : public IpcMessage {
+public:
+    LivelyDropdownScaler() : IpcMessage(MessageType::lp_dropdown_scaler) {}
+    LIVELY_IPC_JSON_IMPL(LivelyDropdownScaler, IpcMessage) {
+        j["Name"] = name;
+        j["Value"] = value;
+    }
+    std::string name;
+    int value = 0;
+};
+
 // public string Name; public bool Value
 class LivelyCheckbox final : public IpcMessage {
 public:

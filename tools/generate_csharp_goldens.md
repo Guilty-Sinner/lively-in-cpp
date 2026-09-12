@@ -162,6 +162,55 @@ What it pinned, complete with one correction to my own test:
   (`x.Equals(entry.Display)`); the line is recorded so the port's deliberately
   gentler handling is a documented deviation rather than a silent difference.
 
+## Wallpaper runtime (`wallpaper` mode) — PASSED
+
+`dotnet run -c Release --project tools/csharp_probe -- wallpaper` writes
+`tests/goldens/wallpaper_csharp.txt` (36 lines) and covers the three pure
+functions of the wallpaper host in `Lively/Core/Wallpapers/VideoMpvPlayer.cs`
+plus the scaler mapping in `PictureWinAPI.cs`:
+
+* `mpv.args.*` — the 21-fragment option string the constructor builds.
+* `mpv.cmd.*` — the JSON IPC commands (`GetMpvCommand`).
+* `mpv.scaler.*` / `picture.*` — `UpdateScaler`'s property sequence and the
+  Lively → `DESKTOP_WALLPAPER_POSITION` mapping.
+
+Provenance differs per group, and the fixture records which is which:
+
+* `mpv.cmd.*` is produced by the **real serializer**: the probe redeclares the
+  private nested `MpvCommand` shape (`[JsonProperty("command")] List<object>`)
+  and calls `JsonConvert.SerializeObject` exactly as `GetMpvCommand` does. So
+  int-vs-double rendering, bool casing and escaping are genuinely pinned.
+* `mpv.args.*` and the two scaler tables are **verbatim re-expressions**, because
+  neither is reachable from a console probe: `VideoMpvPlayer` lives in the `Lively`
+  app project (`net9.0-windows`, WPF), which a net8.0 probe cannot reference, and
+  `PictureWinApi`'s scaler switch sits inside a constructor that does COM and
+  enumerates the real monitors. The fragments, their order, their quoting and the
+  two host-dependent inputs (the base directory, whether a portable config dir
+  exists) are copied character for character; each is marked in `WallpaperProbe.cs`.
+
+What it pinned:
+
+* `Environment.NewLine` is CRLF, so every mpv IPC command ends `\r\n`.
+  An LF-only command is silently ignored by mpv — which presents as "the volume
+  slider does nothing", not as a protocol error.
+* Newtonsoft renders `1.5f` as `1.5` and `-3f` as `-3.0` in the same list, and
+  the slider rule decides int-vs-double through `Convert.ToInt32` (ties to even),
+  so `2.5` is sent as `2`.
+* The gif branch appends `--scale=nearest ` where every other type appends a lone
+  space, so `--input-ipc-server=… ` is followed by one space for gif and two for
+  everything else.
+* The path is wrapped in literal quotes with no escaping (`"C:\wp\a b"c.mp4"`),
+  and `--config-dir="…"` is quoted too.
+* For `videostream` the URL is **not** quoted and `--ytdl-format=` is appended to
+  the same argument — `link + quality switch { … }` parses as `link + (switch)`.
+* `auto` has no arm in `UpdateScaler`, so it sends no property at all, and
+  `uniformFill` sends `panscan 1.0` last while `uniform` sends it first.
+* Lively's `fill` is Windows' **Stretch** and `uniform` is **Fit** — swapping them
+  is visually plausible and silently wrong.
+
+Replayed by `tests/test_wallpaper.cpp` (tagged `[wallpaper]`, part of the ordinary
+suite).
+
 ## Differential fuzzing (CommandLineParser) — PASSED
 
 `tools/fuzz_differential.py` drives the *real* CommandLineParser 2.9.1 (via

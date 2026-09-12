@@ -264,4 +264,51 @@ void open_browser(const std::string& address) {
 #endif
 }
 
+#ifdef _WIN32
+// Kept OUTSIDE the anonymous namespace: DisplayManager's synthetic device id
+// calls this from another translation unit.
+std::string sha256_hex(const std::string& data) {
+    BCRYPT_ALG_HANDLE algorithm = nullptr;
+    if (::BCryptOpenAlgorithmProvider(&algorithm, BCRYPT_SHA256_ALGORITHM, nullptr, 0) < 0) {
+        throw std::runtime_error("BCryptOpenAlgorithmProvider(SHA256) failed");
+    }
+    DWORD object_size = 0, hash_size = 0, produced = 0;
+    std::vector<unsigned char> object, hash;
+    bool ok = ::BCryptGetProperty(algorithm, BCRYPT_OBJECT_LENGTH,
+                                  reinterpret_cast<PUCHAR>(&object_size), sizeof(object_size),
+                                  &produced, 0) >= 0 &&
+              ::BCryptGetProperty(algorithm, BCRYPT_HASH_LENGTH,
+                                  reinterpret_cast<PUCHAR>(&hash_size), sizeof(hash_size), &produced,
+                                  0) >= 0;
+    if (ok) {
+        object.resize(object_size);
+        hash.resize(hash_size);
+        BCRYPT_HASH_HANDLE handle = nullptr;
+        ok = ::BCryptCreateHash(algorithm, &handle, object.data(), object_size, nullptr, 0, 0) >= 0;
+        if (ok) {
+            ok = ::BCryptHashData(handle, reinterpret_cast<PUCHAR>(const_cast<char*>(data.data())),
+                                  static_cast<ULONG>(data.size()), 0) >= 0 &&
+                 ::BCryptFinishHash(handle, hash.data(), hash_size, 0) >= 0;
+            ::BCryptDestroyHash(handle);
+        }
+    }
+    ::BCryptCloseAlgorithmProvider(algorithm, 0);
+    if (!ok) throw std::runtime_error("SHA-256 computation failed");
+
+    static const char* hex = "0123456789abcdef";
+    std::string result;
+    result.reserve(hash.size() * 2);
+    for (unsigned char byte : hash) {
+        result.push_back(hex[byte >> 4]);
+        result.push_back(hex[byte & 0x0F]);
+    }
+    return result;
+}
+#else
+std::string sha256_hex(const std::string& data) {
+    (void)data;
+    throw std::runtime_error("sha256_hex requires Windows (BCrypt).");
+}
+#endif
+
 } // namespace lively::common

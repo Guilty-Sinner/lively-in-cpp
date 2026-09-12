@@ -13,5 +13,6 @@ LivelyTextBox.populated	{"Type":13,"Name":"Note","Value":"abc"}
 LivelyCheckbox.checked	{"Type":18,"Name":"Enabled","Value":true}
 LivelyDropdown.populated	{"Type":14,"Name":"Quality","Value":2}
 LivelyButton.default	{"Type":16,"Name":"Apply","IsDefault":true}
+LivelyDropdownScaler.populated	{"Type":19,"Name":"Scaler","Value":3}
 LivelyColorPicker.populated	{"Type":17,"Name":"Tint","Value":"#FFAA00"}
 LivelyMessageConsole.unicode	{"Type":1,"Message":"壁紙 \"test\"\nline2","Category":0}
