@@ -36,4 +36,11 @@ std::string get_file_name_without_extension(const std::string& path);
 // the C# null, which callers like LinkUtil.GetStableHostName coalesce).
 std::optional<std::string> get_directory_name(const std::string& path);
 
+// UTF-8 view of a wide path. The port's path constants
+// (Constants.CommonPaths.*) come from the Win32 known-folder APIs and are wide,
+// while every filesystem helper here takes narrow UTF-8 — this is the bridge.
+// On non-Windows builds it narrows byte-wise (wide chars are already UTF-8-ish
+// there), which is enough for the branch that never runs on Windows.
+std::string utf8_from_wide(const std::wstring& wide);
+
 } // namespace lively::common::path

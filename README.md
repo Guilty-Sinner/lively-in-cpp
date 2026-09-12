@@ -11,21 +11,21 @@ requirements document; every mapping below is deliberate.
 
 | C# Project | LOC | C++ status | C++ location |
 |---|---|---|---|
-| Lively.Models | 2,072 | **Ported** — IPC wire format + LivelyProperty pipeline + SettingsModel (74 fields, byte-identical to C# Newtonsoft output) verified against captured C# output (oracle tests) | `src/lively/models` |
+| Lively.Models | 2,072 | **Ported** — IPC wire format + LivelyProperty pipeline + SettingsModel (74 fields, byte-identical to C# Newtonsoft output) + `ApplicationRulesModel` / `AppMusicExclusionRuleModel` / `ThemeModel`, all verified against captured C# output (oracle tests) | `src/lively/models` |
 | Lively.Utility.Watchdog | 159 | **Ported** — protocol + Win32 main, tests green | `src/lively/utility/watchdog` |
 | Lively.Utility.Commandline | 79 | **Ported** — all 7 verbs, tests green | `src/lively/utility/commandline` |
 | Lively.Utility.ConsoleDemo | 121 | **Ported** (menu + phase-2 stubs for gRPC calls) | `src/lively/utility/console_demo` |
-| Lively.Common (helpers) | ~3,000 of 9,253 | **Ported** — Constants, SystemInfo, LogUtil, AppLifeCycleUtil, `JsonUtil`/`JsonStorage`, `PipeClient` (Win32 named pipe); `FileTypes` (incl. a zip central-directory reader replacing SharpZipLib), `FileUtil`, `LinkUtil`, `Languages`, `WindowClassExclusions`, `WallpaperExtensions`, `LivelyInfoUtil`, `System.IO.Path` primitives — all transcript-verified against the C# oracle | `src/lively/common` |
-| Lively (core) — library/metadata slice | ~600 of 15,815 | **Ported** — `LivelyInfoModel` (+ its byte-exact `livelyinfo.json` writer), `LibraryModel`, `LivelyInfoLocalizationFile`, `WallpaperLibraryFactory` (`GetMetadata`, `CreateFromDirectory`, `CreateFromMetadata`, `CreateWallpaperPackage`, `ConvertAbsoluteToRelativePath`). This is the headless slice: what a library entry *is*, and every path rule that fills it. The rest of the core (WorkerW, per-display placement, wallpaper lifecycle) is not started | `src/lively/models`, `src/lively/common/factories` |
+| Lively.Common (helpers) | ~3,700 of 9,253 | **Ported** — Constants, SystemInfo, LogUtil, AppLifeCycleUtil, `JsonUtil`/`JsonStorage`, `PipeClient` (Win32 named pipe); `FileTypes` (incl. a zip central-directory reader replacing SharpZipLib), `FileUtil`, `LinkUtil`, `Languages`, `WindowClassExclusions`, `WallpaperExtensions`, `LivelyInfoUtil`, `System.IO.Path` primitives, `EncryptUtil` (DPAPI) + base64 — all transcript-verified against the C# oracle | `src/lively/common` |
+| Lively (core) — library/metadata slice | ~800 of 15,815 | **Ported** — `LivelyInfoModel` (+ its byte-exact `livelyinfo.json` writer), `LibraryModel`, `LivelyInfoLocalizationFile`, `WallpaperLibraryFactory` (`GetMetadata`, `CreateFromDirectory`, `CreateFromMetadata`, `CreateWallpaperPackage`, `ConvertAbsoluteToRelativePath`), and the layout files: `WallpaperLayoutModel` / `ScreenSaverLayoutModel` + their `WallpaperLayout.json`/`ScreenSaverLayout.json` persistence. This is the headless slice: what a library entry *is*, every path rule that fills it, and how a multi-display arrangement is persisted. The rest of the core (WorkerW, the placement decisions themselves, wallpaper lifecycle) is not started | `src/lively/models`, `src/lively/common/factories` |
 | Lively.Common.Services | 830 | **Ported** — `GithubUpdaterService`, `HttpDownloadService`, `NAudioVisualizerService` (WASAPI loopback + FFT); `NpsmNowPlayingService` is a documented stub (NPSMLib wraps undocumented WinRT internals with no native surface) | `src/lively/services` |
 | Lively.Grpc.Client | 1,261 | **Ported (complete — all 5 clients)**: `CommandsClient`, `DesktopCoreClient`, `DisplayManagerClient`, `AppUpdaterClient`, `UserSettingsClient` — coroutine gRPC clients with server-streaming subscriptions, events, typed error mapping, full 74-field settings proto mapping; wire-compatibility proven against a real C# server ([.crosslang] oracle test) | `src/lively/rpc`, `proto/` |
-| Lively.Gallery.Client | 653 | **Ported** — full REST client over WinHTTP (search/subscriptions/auth/refresh/health), incl. the C# quirks (both providers POST to `auth/google-token`, unencoded tags, truncated-MB progress) and the shared `net::HttpClient` | `src/lively/gallery`, `src/lively/net` |
+| Lively.Gallery.Client | 687 | **Ported** — full REST client over WinHTTP (search/subscriptions/auth/refresh/health), incl. the C# quirks (both providers POST to `auth/google-token`, unencoded tags, truncated-MB progress), the shared `net::HttpClient`, and `JsonTokenStore` (DPAPI-encrypted `Tokens.dat`) | `src/lively/gallery`, `src/lively/net` |
 | Lively.Player.Wmf | 425 | `StartArgs` contract **ported + oracle-verified**; window/rendering not started | `src/lively/players` |
 | Lively.Player.Vlc | 832 | `StartArgs` contract **ported + oracle-verified**; window/rendering not started | `src/lively/players` |
 | Lively.Player.WebView2 | 1,199 | `StartArgs` contract **ported + oracle-verified**; window/rendering not started | `src/lively/players` |
 | Lively.Player.CefSharp | 1,346 | `StartArgs` contract **ported + oracle-verified**; window/rendering not started | `src/lively/players` |
 | Lively.ML | 193 | **Ported** — MiDaS depth estimation over the onnxruntime C API with WIC image decode/resize; runtime API-version negotiation (see *Toolchain note*) | `src/lively/ml` |
-| Lively.Common | 9,253 | Remaining: Helpers/{Shell,Hardware,Pinvoke,MVVM}, factories for applications/rules, COM interop — Phase 2 | — |
+| Lively.Common | 9,253 | Remaining: Helpers/{Shell,Hardware,Pinvoke,MVVM}, COM interop — Phase 2 | — |
 | Lively (core) | 15,815 | Remaining: WorkerW desktop integration, per-display placement, wallpaper lifecycle — Phase 2 | — |
 | Lively.UI.Shared / UI.WinUI | 11,284 | Not started (Phase 3, C++/WinRT) | — |
 
@@ -75,12 +75,43 @@ requirements document; every mapping below is deliberate.
    line for line — including the traps: a media wallpaper falls back to the bundled player
    properties under `%LOCALAPPDATA%`, and with `IsAbsolutePath` the property file is looked
    up next to the *executable*, not in the wallpaper folder.
-8. **Player launch contract**: the four `Lively.Player.*/StartArgs` option sets parse
+8. **Layout persistence**: `WallpaperLayout.json` / `ScreenSaverLayout.json` are JSON arrays
+   whose entries nest a `DisplayMonitor`, and Newtonsoft writes that class in a way
+   nobody would guess: the public *field* `isStale` is serialized **first**, the
+   `Bounds`/`WorkingArea` rectangles become the *string* `"x, y, width, height"`
+   (System.Drawing's TypeConverter), and `IntPtr HMonitor` becomes `{"value": n}`.
+   The settings fixture never caught this because its `SelectedDisplay` is null, so
+   `settings.json` written by the port was unreadable by C# for any real display —
+   now pinned by `tests/goldens/layout_csharp.txt` and a settings regression test.
+9. **Player launch contract**: the four `Lively.Player.*/StartArgs` option sets parse
    identically to CommandLineParser 2.9.1 — verified by a 1,500-case differential run
    (`[.players-oracle]`). This is the interface the core uses to launch a wallpaper
    player, so its quirks are load-bearing, e.g. `bool` is a *switch* (so
    `--wallpaper-hardware-decoding false` still means `true`), enum names are matched
    case-sensitively, and a scalar only ever consumes the token immediately after it.
+10. **Encrypted + rule-file persistence** (`tests/goldens/persist_csharp.txt`, from
+   `csharp_probe persist`): `Tokens.dat`, `AppRules.json` and
+   `MusicAppExclusionRules.json`. This fixture is deliberately *partial*, and the
+   reason is the interesting part: a DPAPI blob carries a random key and salt, so
+   `Tokens.dat` can never be byte-compared between the two implementations. What the
+   golden pins instead is (a) the wrapper shape — a JSON **string** of base64, single
+   line, i.e. not plaintext JSON, (b) the plaintext that gets encrypted, which *is*
+   deterministic, and (c) the two rule files byte for byte. That caught two real
+   divergences: `Expiration` had to round-trip through Newtonsoft's canonical
+   `DateTime` rendering (`2030-06-01T12:30:45.0000000Z` → `…45Z`, and `default(DateTime)`
+   → `0001-01-01T00:00:00` — *no* `Z`, which is not the string the port originally
+   wrote), and the two `List<T>` rule files are indented/CRLF like everything else
+   `JsonStorage<T>` writes.
+11. **Theme files**: `theme.json` + `AppThemeFactory`, the last `JsonStorage<T>` type
+   the app persists. Two members a hand-written port gets wrong: `IsEditable` carries
+   `[JsonIgnore]` and must never reach the file, and the C# **copy constructor does not
+   copy `AppVersion`** (it re-runs the field initializer), so an installed theme records
+   the *host app's* version even when the source model had a different one. The port
+   models that as `ThemeModel::copy_constructor` rather than a compiler-generated copy,
+   so the divergence is visible at each call site. `Name` is nullable while `AppVersion`
+   is not (it has an initializer) — a default-constructed model writes `"Name": null`.
+   The fixture masks the entry-assembly version, because that value is build metadata
+   (`1.0.0.0` for the probe, `2.2.1.5` for the real app).
 
 ## Verification strategy
 
@@ -88,8 +119,8 @@ requirements document; every mapping below is deliberate.
   C# binaries (run `dotnet run --project "lively in C#/src/Lively/Lively.Utility.ConsoleDemo"`)
   are compared byte-for-byte against C++ output. Regenerate a specific one with the probe:
   `dotnet run -c Release --project tools/csharp_probe -- <mode>` where `<mode>` is
-  `library` / `props` / `settings` / a bare run for the IPC fixtures — see
-  `tools/generate_csharp_goldens.md`.
+  `library` / `layout` / `persist` / `props` / `settings` / `players` / a bare run for the
+  IPC fixtures — see `tools/generate_csharp_goldens.md`.
 - **Differential fuzzing** (`tools/fuzz_differential.py`): the same generated argv is
   fed to the real C# `CommandLineParser` (via `tools/csharp_probe fuzz`) and to the C++
   binary; the canonical outcome lines must match. 4,500+ verb cases and 1,500 player-args
@@ -144,7 +175,7 @@ self-contained (see *Continuous integration*).
 `.github/workflows/ci.yml` implements the two verification layers described above:
 
 - **`build-test`** — MSYS2 UCRT64 toolchain, matrix over `LIVELY_BUILD_RPC=ON|OFF`,
-  `ctest` (66 / 57 cases). **No upstream C# checkout is required**: the oracle
+  `ctest` (87 / 80 cases). **No upstream C# checkout is required**: the oracle
   *goldens* are committed and the LivelyProperty input fixtures are vendored, so
   this runs on every push and pull request.
 - **`oracle`** — checks out upstream Lively at the pinned commit, builds
@@ -175,10 +206,12 @@ Current verified environment: MinGW-w64 GCC 16.1 (WinLibs UCRT, via winget
 `BrechtSanders.WinLibs.POSIX.UCRT`), CMake 4.4, MSYS2 UCRT64 gRPC 1.82 +
 protobuf 35.1 —
 
-- **RPC-off build**: 65 test cases / 611 assertions, all passing.
-- **RPC-on build**: 72 test cases / 719 assertions, all passing (stable across reruns),
+- **RPC-off build**: 80 test cases / 771 assertions, all passing.
+- **RPC-on build**: 87 test cases / 879 assertions, all passing (stable across reruns),
   including the `[.crosslang]` C++-client ↔ C#-server oracle test and the
   DesktopCore / DisplayManager / AppUpdater / UserSettings streaming + event tests.
+- **CI-like build** (no C# checkout on the include path): 87 / 879 — the same
+  numbers as RPC-on, which is what makes the self-contained claim real.
 - **Gallery / services / HTTP**: a raw loopback HTTP server exercises the WinHTTP
   layer and the gallery client — token refresh on 401, the `AlreadySubscribed`
   rethrow path, subscription events, health, download progress and the

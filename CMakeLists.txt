@@ -105,7 +105,9 @@ add_library(lively_models STATIC
   src/lively/models/ipc_message.cpp
   src/lively/models/lively_controls.cpp
   src/lively/models/settings_model.cpp
-  src/lively/models/lively_info.cpp)
+  src/lively/models/lively_info.cpp
+  src/lively/models/display_monitor.cpp
+  src/lively/models/wallpaper_layout.cpp)
 target_include_directories(lively_models PUBLIC include)
 target_link_libraries(lively_models PUBLIC nlohmann_json::nlohmann_json)
 target_compile_definitions(lively_models PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN)
@@ -125,13 +127,18 @@ add_library(lively_common STATIC
   src/lively/common/languages.cpp
   src/lively/common/window_class_exclusions.cpp
   src/lively/common/lively_info_util.cpp
-  src/lively/common/factories/wallpaper_library_factory.cpp)
+  src/lively/common/base64.cpp
+  src/lively/common/encrypt_util.cpp
+  src/lively/common/factories/wallpaper_library_factory.cpp
+  src/lively/common/factories/app_theme_factory.cpp)
 target_include_directories(lively_common PUBLIC include)
 target_link_libraries(lively_common PUBLIC lively_models)
 if(WIN32)
   # shell32: ShellExecute (open browser/folder); bcrypt: SHA-1/SHA-256, which the
-  # C# code gets from System.Security.Cryptography.
-  target_link_libraries(lively_common PUBLIC shell32 bcrypt)
+  # C# code gets from System.Security.Cryptography; crypt32: DPAPI
+  # (CryptProtectData/CryptUnprotectData), which the C# code gets from
+  # System.Security.Cryptography.ProtectedData (EncryptUtil, Tokens.dat).
+  target_link_libraries(lively_common PUBLIC shell32 bcrypt crypt32)
 endif()
 
 add_library(lively_utility STATIC
@@ -182,9 +189,11 @@ endif()
 
 # Gallery REST client port (Lively.Gallery.Client).
 add_library(lively_gallery STATIC
-  src/lively/gallery/gallery_client.cpp)
+  src/lively/gallery/gallery_client.cpp
+  src/lively/gallery/json_token_store.cpp)
 target_include_directories(lively_gallery PUBLIC include)
-target_link_libraries(lively_gallery PUBLIC lively_net lively_models nlohmann_json::nlohmann_json)
+target_link_libraries(lively_gallery PUBLIC lively_net lively_models lively_common
+  nlohmann_json::nlohmann_json)
 if(WIN32)
   target_link_libraries(lively_gallery PUBLIC ws2_32)
 endif()
@@ -229,7 +238,9 @@ if(LIVELY_BUILD_TESTS)
     tests/test_settings.cpp
     tests/test_pipe_json.cpp
     tests/test_players.cpp
-    tests/test_library.cpp)
+    tests/test_library.cpp
+    tests/test_layout.cpp
+    tests/test_persist.cpp)
   target_link_libraries(lively_tests PRIVATE lively_models lively_common lively_utility lively_players
     Catch2::Catch2WithMain)
   if(LIVELY_BUILD_RPC)

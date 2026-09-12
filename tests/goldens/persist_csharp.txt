@@ -1,0 +1,20 @@
+jsonstorage.bytes	\"AQID/wAQgA==\"
+jsonstorage.bytes.reload	010203ff001080
+jsonstorage.bytes.empty	\"\"
+apprules.serialize	[\r\n  {\r\n    \"AppName\": \"vlc.exe\",\r\n    \"Rule\": 0\r\n  },\r\n  {\r\n    \"AppName\": \"game.exe\",\r\n    \"Rule\": 2\r\n  },\r\n  {\r\n    \"AppName\": \"whatever\",\r\n    \"Rule\": 1\r\n  }\r\n]
+apprules.reload	vlc.exe=0;game.exe=2;whatever=1
+musicexclusion.serialize	[\r\n  {\r\n    \"AppName\": \"Spotify\",\r\n    \"AppPath\": \"C:\\\\Users\\\\x\\\\AppData\\\\Roaming\\\\Spotify\\\\Spotify.exe\"\r\n  },\r\n  {\r\n    \"AppName\": \"Ünïcode ✓\",\r\n    \"AppPath\": null\r\n  }\r\n]
+tokenstore.plaintext	{\"AccessToken\":\"access-token-!@#$%^&*()\",\"RefreshToken\":\"refresh-token\",\"Provider\":\"google\",\"Expiration\":\"2030-06-01T12:30:45Z\"}
+tokenstore.plaintext.empty	{\"AccessToken\":null,\"RefreshToken\":null,\"Provider\":null,\"Expiration\":\"0001-01-01T00:00:00\"}
+tokenstore.shape	quoted-string
+tokenstore.single-line	single-line
+tokenstore.reload	access=access-token-!@#$%^&*();refresh=refresh-token;provider=google;expiration=2030-06-01T12:30:45.0000000Z
+tokenstore.empty	access=<null>;refresh=<null>;provider=<null>;expiration=0001-01-01T00:00:00.0000000Z
+theme.serialize	{\r\n  \"AppVersion\": \"0.0.0.0\",\r\n  \"Name\": \"My Theme\",\r\n  \"Description\": \"desc\",\r\n  \"Contact\": null,\r\n  \"License\": null,\r\n  \"File\": \"picture.png\",\r\n  \"Preview\": \"preview.png\",\r\n  \"AccentColor\": \"#FFAA00\",\r\n  \"Type\": 0,\r\n  \"Tags\": [\r\n    \"dark\",\r\n    \"minimal\"\r\n  ]\r\n}
+theme.reload	appVersion=0.0.0.0;name=My Theme;description=desc;contact=<null>;license=<null>;file=picture.png;preview=preview.png;accentColor=#FFAA00;type=0;tags=dark|minimal;isEditable=False
+theme.reload.appversion	0.0.0.0
+theme.serialize.bare	{\r\n  \"AppVersion\": \"0.0.0.0\",\r\n  \"Name\": null,\r\n  \"Description\": null,\r\n  \"Contact\": null,\r\n  \"License\": null,\r\n  \"File\": null,\r\n  \"Preview\": null,\r\n  \"AccentColor\": null,\r\n  \"Type\": 0,\r\n  \"Tags\": null\r\n}
+theme.factory.created	appVersion=0.0.0.0;name=Wallpaper Theme;description=a description;contact=<null>;license=<null>;file=<THEME_DIR>/source.png;preview=<THEME_DIR>/source.png;accentColor=<null>;type=0;tags=<null>;isEditable=True
+theme.factory.loaded	appVersion=<HOST>;name=Wallpaper Theme;description=a description;contact=<null>;license=<null>;file=<THEME_DIR>/source.png;preview=<THEME_DIR>/source.png;accentColor=<null>;type=0;tags=<null>;isEditable=True
+theme.factory.editable	True
+theme.factory.stored	{\r\n  \"AppVersion\": \"<HOST>\",\r\n  \"Name\": \"Wallpaper Theme\",\r\n  \"Description\": \"a description\",\r\n  \"Contact\": null,\r\n  \"License\": null,\r\n  \"File\": \"source.png\",\r\n  \"Preview\": \"source.png\",\r\n  \"AccentColor\": null,\r\n  \"Type\": 0,\r\n  \"Tags\": null\r\n}

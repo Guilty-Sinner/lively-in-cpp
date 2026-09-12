@@ -375,7 +375,11 @@ bool GalleryClient::logout() {
         std::lock_guard lock(state_mutex_);
         current_user_ = std::nullopt;
     }
-    token_store_->set("", "", "", "0001-01-01T00:00:00Z");  // C# DateTime.MinValue
+    // C# `_tokenStore.Set(null, null, null, DateTime.MinValue)`. The timestamp is
+    // Newtonsoft's canonical rendering of default(DateTime): NO zone suffix —
+    // "0001-01-01T00:00:00Z" would be a different string and would make the
+    // persisted Tokens.dat plaintext diverge from the C# app's.
+    token_store_->set("", "", "", "0001-01-01T00:00:00");
     logged_out.raise();
     return result.success;
 }

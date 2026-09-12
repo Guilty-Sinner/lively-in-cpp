@@ -63,17 +63,23 @@ private:
 
 // ---- Token store ------------------------------------------------------------
 
-// C# ITokenStore (in the real app: encrypted persistent storage). The Get/Set
-// contract is what GalleryClient depends on; a memory implementation is
-// provided, callers may inject a file-backed one.
+// C# ITokenStore (in the real app: EncryptUtil-backed JsonTokenStore, see
+// lively/gallery/json_token_store.h). Get/Set/Clear is the full contract —
+// Clear exists on the interface even though GalleryClient only ever calls Set
+// (with nulls/DateTime.MinValue to log out).
 class ITokenStore {
 public:
     virtual ~ITokenStore() = default;
     virtual models::gallery::TokensModel get() const = 0;
     virtual void set(const std::string& access_token, const std::string& refresh_token,
                      const std::string& provider, const std::string& expiration_iso) = 0;
+    virtual void clear() = 0;
 };
 
+// In-memory stand-in, used by the tests. `get()` never returns a "null" token
+// object the way C# can: an empty/absent store reads as a default-constructed
+// TokensModel, whose missing AccessToken makes GalleryClient throw
+// UnauthorizedException exactly as a null C# token would dereference-fail.
 class MemoryTokenStore : public ITokenStore {
 public:
     models::gallery::TokensModel get() const override {
@@ -87,6 +93,10 @@ public:
         tokens_.refresh_token = refresh_token.empty() ? std::nullopt : std::optional(refresh_token);
         tokens_.provider = provider.empty() ? std::nullopt : std::optional(provider);
         tokens_.expiration_iso = expiration_iso;
+    }
+    void clear() override {
+        std::lock_guard<std::mutex> lock(mutex_);
+        tokens_ = models::gallery::TokensModel{};
     }
 
 private:

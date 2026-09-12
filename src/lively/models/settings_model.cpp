@@ -10,10 +10,10 @@ namespace {
 
 using json = nlohmann::ordered_json;
 
-json rect_to_json(const Rectangle& r);
-Rectangle rect_from_json(const json& j);
-json display_to_json(const std::shared_ptr<DisplayMonitor>& d);
-std::shared_ptr<DisplayMonitor> display_from_json(const json& j);
+// A null C# reference serializes as JSON null; the actual DisplayMonitor member
+// contract lives in display_monitor.cpp (shared with the layout files).
+json display_ref_to_json(const std::shared_ptr<DisplayMonitor>& d);
+std::shared_ptr<DisplayMonitor> display_ref_from_json(const json& j);
 
 template <typename E>
 E read_enum(const json& j, const char* key, E fallback) {
@@ -63,7 +63,7 @@ void write_members(const SettingsModel& m, json& j) {
     j["WebBrowser"] = static_cast<int>(m.web_browser);
     j["GifCapture"] = m.gif_capture;
     j["MultiFileAutoImport"] = m.multi_file_auto_import;
-    j["SelectedDisplay"] = display_to_json(m.selected_display);
+    j["SelectedDisplay"] = display_ref_to_json(m.selected_display);
     j["UIMode"] = static_cast<int>(m.ui_mode);
     j["WallpaperDir"] = m.wallpaper_dir;
     j["WallpaperDirMoveExistingWallpaperNewDir"] = m.wallpaper_dir_move_existing_wallpaper_new_dir;
@@ -109,54 +109,18 @@ void write_members(const SettingsModel& m, json& j) {
     j["ProcessMonitorGridTileSize"] = m.process_monitor_grid_tile_size;
     j["VideoTargetColorSpaceMode"] = static_cast<int>(m.video_target_color_space_mode);
     j["DisplayAudioOutput"] = static_cast<int>(m.display_audio_output);
-    j["SelectedAudioOutputDisplay"] = display_to_json(m.selected_audio_output_display);
+    j["SelectedAudioOutputDisplay"] = display_ref_to_json(m.selected_audio_output_display);
     j["IsRestartAfterLockscreen"] = m.is_restart_after_lockscreen;
 }
 
-json display_to_json(const std::shared_ptr<DisplayMonitor>& d) {
+json display_ref_to_json(const std::shared_ptr<DisplayMonitor>& d) {
     if (!d) return json(nullptr);
-    json j;
-    j["DeviceId"] = d->device_id;
-    j["DeviceName"] = d->device_name;
-    j["DisplayName"] = d->display_name;
-    j["HMonitor"] = d->h_monitor;
-    j["IsPrimary"] = d->is_primary;
-    j["Index"] = d->index;
-    j["Bounds"] = rect_to_json(d->bounds);
-    j["WorkingArea"] = rect_to_json(d->working_area);
-    return j;
+    return display_to_json(*d);
 }
 
-std::shared_ptr<DisplayMonitor> display_from_json(const json& j) {
+std::shared_ptr<DisplayMonitor> display_ref_from_json(const json& j) {
     if (j.is_null()) return nullptr;
-    auto d = std::make_shared<DisplayMonitor>();
-    d->device_id = j.value("DeviceId", std::string());
-    d->device_name = j.value("DeviceName", std::string());
-    d->display_name = j.value("DisplayName", std::string());
-    d->h_monitor = j.value("HMonitor", std::int64_t{0});
-    d->is_primary = j.value("IsPrimary", false);
-    d->index = j.value("Index", 0);
-    d->bounds = rect_from_json(j.value("Bounds", json::object()));
-    d->working_area = rect_from_json(j.value("WorkingArea", json::object()));
-    return d;
-}
-
-json rect_to_json(const Rectangle& r) {
-    json j;
-    j["X"] = r.x;
-    j["Y"] = r.y;
-    j["Width"] = r.width;
-    j["Height"] = r.height;
-    return j;
-}
-
-Rectangle rect_from_json(const json& j) {
-    Rectangle r;
-    r.x = j.value("X", 0);
-    r.y = j.value("Y", 0);
-    r.width = j.value("Width", 0);
-    r.height = j.value("Height", 0);
-    return r;
+    return std::make_shared<DisplayMonitor>(display_from_json(j));
 }
 
 
@@ -297,7 +261,7 @@ SettingsModel SettingsModel::from_json_string(const std::string& raw) {
     out.web_browser = read_enum(j, "WebBrowser", out.web_browser);
     out.gif_capture = j.value("GifCapture", out.gif_capture);
     out.multi_file_auto_import = j.value("MultiFileAutoImport", out.multi_file_auto_import);
-    out.selected_display = display_from_json(j.value("SelectedDisplay", json(nullptr)));
+    out.selected_display = display_ref_from_json(j.value("SelectedDisplay", json(nullptr)));
     out.ui_mode = read_enum(j, "UIMode", out.ui_mode);
     out.wallpaper_dir = j.value("WallpaperDir", out.wallpaper_dir);
     out.wallpaper_dir_move_existing_wallpaper_new_dir =
@@ -345,7 +309,7 @@ SettingsModel SettingsModel::from_json_string(const std::string& raw) {
     out.process_monitor_grid_tile_size = j.value("ProcessMonitorGridTileSize", out.process_monitor_grid_tile_size);
     out.video_target_color_space_mode = read_enum(j, "VideoTargetColorSpaceMode", out.video_target_color_space_mode);
     out.display_audio_output = read_enum(j, "DisplayAudioOutput", out.display_audio_output);
-    out.selected_audio_output_display = display_from_json(j.value("SelectedAudioOutputDisplay", json(nullptr)));
+    out.selected_audio_output_display = display_ref_from_json(j.value("SelectedAudioOutputDisplay", json(nullptr)));
     out.is_restart_after_lockscreen = j.value("IsRestartAfterLockscreen", out.is_restart_after_lockscreen);
     return out;
 }

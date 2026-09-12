@@ -54,6 +54,14 @@ namespace csharp_probe
             {
                 return LibraryProbe.Run();
             }
+            if (args.Length > 0 && args[0] == "layout")
+            {
+                return LayoutProbe.Run();
+            }
+            if (args.Length > 0 && args[0] == "persist")
+            {
+                return PersistProbe.Run();
+            }
 
             Emit("LivelyCloseCmd.default", new LivelyCloseCmd());
             Emit("LivelySuspendCmd.default", new LivelySuspendCmd());

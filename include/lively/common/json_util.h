@@ -15,10 +15,14 @@
 // byte-compatible with Newtonsoft's Formatting.Indented output shape; the
 // golden tests pin the exact bytes for the IPC/settings payloads).
 
+#include <lively/common/base64.h>
 #include <lively/common/json_format.h>
+#include <lively/models/application_rules.h>
 #include <lively/models/ipc_message.h>
 #include <lively/models/lively_info.h>
 #include <lively/models/settings_model.h>
+#include <lively/models/theme.h>
+#include <lively/models/wallpaper_layout.h>
 
 #include <nlohmann/json.hpp>
 
@@ -110,7 +114,131 @@ public:
         out << info.to_json_string();
     }
 
+    // C# JsonStorage<List<WallpaperLayoutModel>> / <List<ScreenSaverLayoutModel>>.
+    // Both files are a JSON array at the root, indented the same way.
+    static std::vector<models::WallpaperLayoutModel> LoadWallpaperLayoutData(
+        const std::string& path) {
+        const JsonValue array = JsonValue::parse(read_all(path));
+        std::vector<models::WallpaperLayoutModel> layouts;
+        if (!array.is_array()) throw std::runtime_error("json null/corrupt");
+        for (const auto& item : array) {
+            layouts.push_back(models::WallpaperLayoutModel::from_json(item));
+        }
+        return layouts;
+    }
+
+    static void StoreWallpaperLayoutData(
+        const std::string& path, const std::vector<models::WallpaperLayoutModel>& layouts) {
+        JsonValue array = JsonValue::array();
+        for (const auto& layout : layouts) array.push_back(layout.to_json());
+        write_indented(path, array);
+    }
+
+    static std::vector<models::ScreenSaverLayoutModel> LoadScreenSaverLayoutData(
+        const std::string& path) {
+        const JsonValue array = JsonValue::parse(read_all(path));
+        std::vector<models::ScreenSaverLayoutModel> layouts;
+        if (!array.is_array()) throw std::runtime_error("json null/corrupt");
+        for (const auto& item : array) {
+            layouts.push_back(models::ScreenSaverLayoutModel::from_json(item));
+        }
+        return layouts;
+    }
+
+    static void StoreScreenSaverLayoutData(
+        const std::string& path, const std::vector<models::ScreenSaverLayoutModel>& layouts) {
+        JsonValue array = JsonValue::array();
+        for (const auto& layout : layouts) array.push_back(layout.to_json());
+        write_indented(path, array);
+    }
+
+    // C# JsonStorage<ThemeModel> — an installed theme's theme.json.
+    static models::ThemeModel LoadThemeData(const std::string& path) {
+        return models::ThemeModel::from_json(parse_json(path));
+    }
+
+    static void StoreThemeData(const std::string& path, const models::ThemeModel& theme) {
+        write_indented(path, theme.to_json());
+    }
+
+    // C# JsonStorage<byte[]> — the outer container of EncryptUtil<T>, so
+    // Tokens.dat is a JSON *string* of base64 (see the `jsonstorage.bytes` and
+    // `jsonstorage.bytes.empty` oracle lines: an empty array is `""`, not null).
+    static std::vector<unsigned char> LoadBytesData(const std::string& path) {
+        const JsonValue parsed = parse_json(path);
+        if (!parsed.is_string()) throw std::runtime_error("json null/corrupt");
+        const auto decoded = base64_decode(parsed.get<std::string>());
+        if (!decoded) throw std::runtime_error("invalid base64 in " + path);
+        return *decoded;
+    }
+
+    static void StoreBytesData(const std::string& path, const std::vector<unsigned char>& data) {
+        write_raw(path, JsonValue(base64_encode(data)).dump());
+    }
+
+    // C# JsonStorage<List<ApplicationRulesModel>> (AppRules.json).
+    static std::vector<models::ApplicationRulesModel> LoadAppRulesData(const std::string& path) {
+        std::vector<models::ApplicationRulesModel> rules;
+        for (const auto& item : parse_or_throw(path)) {
+            rules.push_back(models::ApplicationRulesModel::from_json(item));
+        }
+        return rules;
+    }
+
+    static void StoreAppRulesData(const std::string& path,
+                                  const std::vector<models::ApplicationRulesModel>& rules) {
+        JsonValue array = JsonValue::array();
+        for (const auto& rule : rules) array.push_back(rule.to_json());
+        write_indented(path, array);
+    }
+
+    // C# JsonStorage<List<AppMusicExclusionRuleModel>> (MusicAppExclusionRules.json).
+    static std::vector<models::AppMusicExclusionRuleModel> LoadMusicExclusionRulesData(
+        const std::string& path) {
+        std::vector<models::AppMusicExclusionRuleModel> rules;
+        for (const auto& item : parse_or_throw(path)) {
+            rules.push_back(models::AppMusicExclusionRuleModel::from_json(item));
+        }
+        return rules;
+    }
+
+    static void StoreMusicExclusionRulesData(
+        const std::string& path, const std::vector<models::AppMusicExclusionRuleModel>& rules) {
+        JsonValue array = JsonValue::array();
+        for (const auto& rule : rules) array.push_back(rule.to_json());
+        write_indented(path, array);
+    }
+
 private:
+    // Newtonsoft throws a JsonReaderException on unparseable input; the port
+    // reports the same via an exception (every caller branches on failure).
+    static JsonValue parse_json(const std::string& path) {
+        try {
+            return JsonValue::parse(read_all(path));
+        } catch (const std::exception&) {
+            throw std::runtime_error("json null/corrupt");
+        }
+    }
+
+    // The List<T>-rooted stores additionally require a JSON array at the root.
+    static JsonValue parse_or_throw(const std::string& path) {
+        JsonValue parsed = parse_json(path);
+        if (!parsed.is_array()) throw std::runtime_error("json null/corrupt");
+        return parsed;
+    }
+
+    static void write_raw(const std::string& path, const std::string& contents) {
+        std::ofstream out(path, std::ios::binary | std::ios::trunc);
+        if (!out) throw std::runtime_error("cannot open file: " + path);
+        out << contents;
+    }
+
+    static void write_indented(const std::string& path, const JsonValue& value) {
+        std::ofstream out(path, std::ios::binary | std::ios::trunc);
+        if (!out) throw std::runtime_error("cannot open file: " + path);
+        out << newtonsoft_indented(value);
+    }
+
     static std::string read_all(const std::string& path) {
         std::ifstream in(path, std::ios::binary);
         if (!in) throw std::runtime_error("cannot open file: " + path);

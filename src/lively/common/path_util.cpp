@@ -2,6 +2,10 @@
 
 #include <cctype>
 
+#ifdef _WIN32
+#include <windows.h>
+#endif
+
 namespace lively::common::path {
 
 namespace {
@@ -74,6 +78,20 @@ std::optional<std::string> get_directory_name(const std::string& p) {
     // "C:\x" → "C:\" (the root keeps its separator), "C:\dir\x" → "C:\dir".
     if (directory.size() == 2 && directory[1] == ':') directory.push_back(trimmed[sep]);
     return directory;
+}
+
+std::string utf8_from_wide(const std::wstring& wide) {
+    if (wide.empty()) return {};
+#ifdef _WIN32
+    const int size =
+        WideCharToMultiByte(CP_UTF8, 0, wide.c_str(), -1, nullptr, 0, nullptr, nullptr);
+    if (size <= 0) return {};
+    std::string out(static_cast<std::size_t>(size - 1), '\0');
+    WideCharToMultiByte(CP_UTF8, 0, wide.c_str(), -1, out.data(), size, nullptr, nullptr);
+    return out;
+#else
+    return std::string(wide.begin(), wide.end());
+#endif
 }
 
 } // namespace lively::common::path
