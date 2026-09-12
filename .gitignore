@@ -1,0 +1,39 @@
+# CMake build trees (build, build-norpc, build-rpc, ...)
+build/
+build-*/
+cmake-build-*/
+
+# Compiled output
+*.o
+*.obj
+*.a
+*.lib
+*.exe
+*.dll
+*.so
+*.dylib
+*.pdb
+*.ilk
+*.exp
+
+# .NET probe build output (tools/csharp_probe)
+tools/csharp_probe/bin/
+tools/csharp_probe/obj/
+
+# Scratch written by the cross-language oracle tests
+crosslang/
+
+# Editor / IDE / OS cruft
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# NOTE: vendor/*.tar.gz and vendor/*.tar.xz are intentionally committed —
+# CMake's downloader failed TLS verification in this environment, so the
+# nlohmann/json and Catch2 sources are checked in with SHA-256 pins
+# (see the "Vendored dependencies" section of README.md).

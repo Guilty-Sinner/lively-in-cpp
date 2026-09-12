@@ -1,0 +1,22 @@
+# Normalise to LF in the repository; check out with the platform default.
+* text=auto
+
+# Sources and scripts are always LF so the shell/Python tooling keeps working
+# after a fresh clone on Windows.
+*.cpp   text eol=lf
+*.h     text eol=lf
+*.hpp   text eol=lf
+*.cs    text eol=lf
+*.py    text eol=lf
+*.sh    text eol=lf
+*.ps1   text eol=lf
+*.cmake text eol=lf
+CMakeLists.txt text eol=lf
+*.proto text eol=lf
+*.md    text eol=lf
+
+# Vendored archives and generated goldens must never be re-encoded.
+*.tar.gz binary
+*.tar.xz binary
+*.png    binary
+*.ico    binary

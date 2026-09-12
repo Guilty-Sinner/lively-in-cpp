@@ -1,0 +1,17 @@
+LivelyCloseCmd.default	{"Type":5}
+LivelySuspendCmd.default	{"Type":7}
+LivelyResumeCmd.default	{"Type":8}
+LivelyReloadCmd.default	{"Type":4}
+LivelyVolumeCmd.default	{"Type":9,"Volume":0}
+LivelyVolumeCmd.v42	{"Type":9,"Volume":42}
+LivelyMessageHwnd.65535	{"Type":0,"Hwnd":65535}
+LivelyMessageWallpaperLoaded.success	{"Type":2,"Success":true}
+LivelyMessageConsole.error	{"Type":1,"Message":"hello","Category":1}
+LivelyMessageConsole.nullMessage	{"Type":1,"Message":null,"Category":0}
+LivelySlider.populated	{"Type":12,"Name":"Speed","Value":1.5,"Step":0.5}
+LivelyTextBox.populated	{"Type":13,"Name":"Note","Value":"abc"}
+LivelyCheckbox.checked	{"Type":18,"Name":"Enabled","Value":true}
+LivelyDropdown.populated	{"Type":14,"Name":"Quality","Value":2}
+LivelyButton.default	{"Type":16,"Name":"Apply","IsDefault":true}
+LivelyColorPicker.populated	{"Type":17,"Name":"Tint","Value":"#FFAA00"}
+LivelyMessageConsole.unicode	{"Type":1,"Message":"壁紙 \"test\"\nline2","Category":0}

@@ -1,0 +1,17 @@
+saturation	slider|name=saturation|text=Saturation|help=|tick=0|min=-100|max=100|value=0|step=1
+hue	slider|name=hue|text=Hue|help=|tick=0|min=-100|max=100|value=0|step=1
+brightness	slider|name=brightness|text=Brightness|help=|tick=0|min=-100|max=100|value=0|step=1
+contrast	slider|name=contrast|text=Contrast|help=|tick=0|min=-100|max=100|value=0|step=1
+gamma	slider|name=gamma|text=Gamma|help=|tick=0|min=-100|max=100|value=0|step=1
+speed	slider|name=speed|text=Speed|help=|tick=0|min=0.25|max=5|value=1|step=0.01
+scaler	scalerDropdown|name=scaler|text=Choose a Fit|help=Wallpaper scaling algorithm|value=3|items=4
+mute	checkbox|name=mute|text=Mute|help=|value=False
+# localized zh-CN
+saturation	slider|name=saturation|text=飽和度|help=|tick=0|min=-100|max=100|value=0|step=1
+hue	slider|name=hue|text=色調|help=|tick=0|min=-100|max=100|value=0|step=1
+brightness	slider|name=brightness|text=亮度|help=|tick=0|min=-100|max=100|value=0|step=1
+contrast	slider|name=contrast|text=對比度|help=|tick=0|min=-100|max=100|value=0|step=1
+gamma	slider|name=gamma|text=伽碼|help=|tick=0|min=-100|max=100|value=0|step=1
+speed	slider|name=speed|text=速率|help=|tick=0|min=0.25|max=5|value=1|step=0.01
+scaler	scalerDropdown|name=scaler|text=選擇顯示方式|help=桌布縮放演算法|value=3|items=4
+mute	checkbox|name=mute|text=靜音|help=|value=False
