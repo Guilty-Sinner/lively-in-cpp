@@ -282,6 +282,20 @@ protobuf 35.1 —
   onto the desktop in both the per-screen and span paths and exits 0. Neither is a
   unit test — there is no substitute for a real desktop, which is why the binary
   exists.
+- **A real wallpaper, end to end**: with mpv 0.41.0 in
+  `build/plugins/mpv/`, `lively_core set <gif> --volume=35
+  --scaler=uniformFill --screenshot=<file>` launches the player, finds its window,
+  strips the chrome, pushes LivelyProperties, parents it onto Progman, drives the
+  volume and the scaler over the named pipe, and requests a frame — mpv writes the
+  file (a real 59,545-byte JFIF here) and the port matches mpv's `Screenshot:`
+  confirmation line on the captured stdout. `close()` then sends a graceful `quit`
+  and no player process is left behind.
+
+  That last one is worth separating from the transcript: the golden pins the
+  *bytes* of every IPC command, but only a live mpv shows that it **accepts**
+  them — the pipe name, the CRLF framing and the JSON shape all have to be right,
+  and a frame on disk is evidence that they are. It also proved the option string:
+  mpv logged no unknown-option error and reached `VO: [gpu-next]`.
 - **Gallery / services / HTTP**: a raw loopback HTTP server exercises the WinHTTP
   layer and the gallery client — token refresh on 401, the `AlreadySubscribed`
   rethrow path, subscription events, health, download progress and the
@@ -320,6 +334,10 @@ lively_core set <path> [options]           # show a wallpaper (mpv host or
 `IDesktopWallpaper` or `SystemParametersInfo`, so the user's own background is
 untouched and returns as soon as the window is destroyed.
 
+`set` also takes `--volume=<0-100>`, `--scaler=<name>`, `--pause-probe` and
+`--screenshot=<file>`; each is applied *over IPC after the wallpaper is loaded*,
+which is what makes them worth having (see the verification list above).
+
 `set` is the one command with visible side effects, and it is worth being precise
 about which:
 
@@ -331,9 +349,19 @@ about which:
   `PictureWinApi.RestoreWallpaper`'s body is commented out upstream (the port keeps
   the bookkeeping and the empty restore, with the reason recorded in the header).
 - The mpv host needs the bundled player at `plugins/mpv/mpv.exe` next to the
-  binary, which is not part of this repository — the plugins are Lively's release
-  assets. Without it `set` fails with "Failed to start mpv", and that is the
-  expected outcome rather than a bug.
+  binary, which is not part of this repository — and not part of upstream's
+  either: `lively in C#/.gitignore` excludes `/src/Lively/Lively/Plugins/`, so the
+  release build assembles that directory externally. Any recent mpv build works
+  (`winget install -e --id shinchiro.mpv --source winget` puts 0.41.0 in
+  `C:\Program Files\MPV Player\`); copy `mpv.exe` — plus `d3dcompiler_43.dll` for
+  the D3D paths — into `build/plugins/mpv/`, and the two `LivelyProperties*.json`
+  files from `Lively/Assets/Plugins/Mpv/` alongside it so the properties push has
+  something real to read. Without it `set` fails with "Failed to start mpv", and
+  that is the expected outcome rather than a bug. The option set the port sends is
+  all mpv 0.38+ (`--target-colorspace-hint-mode`, `--media-controls`), and a build
+  that rejects an option exits 1 — which the port maps to *"Error initializing mpv.
+  This is also returned if unknown options are passed to mpv"*, so a version
+  mismatch announces itself instead of failing silently.
 
 ### Vendored dependencies
 

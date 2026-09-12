@@ -81,6 +81,12 @@ public:
     // Mpv{uniqueId} log prefix: a per-process sequence number, as upstream.
     int unique_id() const { return unique_id_; }
 
+    // Everything the child has written to the redirected stdout since the last
+    // call. The C# gets the same bytes through OutputDataReceived and logs each
+    // line; a caller that polls instead is what lets the screenshot path be
+    // synchronous (see screen_capture).
+    std::string drain_output();
+
 private:
     // Sends an already-built IPC message; silently drops on a dead process, like
     // the C#'s `catch { }` around PipeClient.SendMessage.

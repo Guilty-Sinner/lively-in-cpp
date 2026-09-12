@@ -323,6 +323,12 @@ void MpvWallpaper::screen_capture(const std::string& file_path) {
     throw std::runtime_error("Screenshot timed out.");
 }
 
+std::string MpvWallpaper::drain_output() {
+    if (!process_)
+        return std::string();
+    return process_->read_available_output();
+}
+
 std::string MpvWallpaper::exit_message() const {
     if (!process_)
         return classify_mpv_exit(-1).message;

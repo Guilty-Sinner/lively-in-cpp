@@ -63,8 +63,13 @@ bool ChildProcess::start(const std::string& exe, const std::string& arguments,
     startup.cb = sizeof(startup);
     startup.dwFlags = STARTF_USESTDHANDLES | STARTF_USESHOWWINDOW;
     startup.hStdOutput = stdout_write_;
-    startup.hStdError = nullptr;   // C#: RedirectStandardError = false
-    startup.hStdInput = nullptr;
+    // RedirectStandardError and RedirectStandardInput are both false in the C#, so
+    // the child must INHERIT the console's stderr and stdin. Passing NULL here would
+    // be wrong: with STARTF_USESTDHANDLES the null is taken literally, leaving mpv
+    // with an invalid stderr handle instead of the console it would normally write
+    // its log to — and mpv's log is exactly what names a rejected option.
+    startup.hStdError = GetStdHandle(STD_ERROR_HANDLE);
+    startup.hStdInput = GetStdHandle(STD_INPUT_HANDLE);
     // The player creates its own window; the C# does not set a window style, so
     // the child's first ShowWindow call decides. SW_SHOWNORMAL keeps that true.
     startup.wShowWindow = SW_SHOWNORMAL;

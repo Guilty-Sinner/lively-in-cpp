@@ -99,6 +99,17 @@ struct SetOptions {
     bool hw_decode = true;
     std::optional<int> seconds;
     bool adopt = true;
+    // Applied after adoption, over the real IPC channel — which is the only way to
+    // prove mpv accepts the command format the transcript pins. The transcript can
+    // show that the bytes are *right*; only a live mpv can show they are accepted.
+    std::optional<int> volume;
+    std::optional<models::WallpaperScaler> scaler;
+    bool pause_probe = false;
+    // `screenshot-to-file` over IPC, then wait for mpv to report the file on
+    // stdout. This is the only probe that proves the whole channel works in both
+    // directions: the pipe name, the CRLF-framed JSON being accepted, and the
+    // stdout capture that the C# parses with a regex.
+    std::optional<std::string> screenshot;
 };
 
 // Type inference mirrors the library factory's own rules closely enough for a
@@ -151,7 +162,12 @@ void print_usage() {
         "  --arrangement=per|span|duplicate\n"
         "  --no-hwdec\n"
         "  --seconds=<n>\n"
-        "  --no-adopt            leave the player window floating (diagnostic)\n");
+        "  --no-adopt            leave the player window floating (diagnostic)\n"
+        "  --volume=<0-100>      set volume over IPC after load\n"
+        "  --scaler=<name>       send a scaler change over IPC after load\n"
+        "  --pause-probe         pause and resume once, over IPC\n"
+        "  --screenshot=<file>   request a frame over IPC and wait for mpv to\n"
+        "                        confirm it on stdout\n");
 }
 
 // lively_core workerw — the diagnostic that answers the only question unit tests
@@ -427,10 +443,22 @@ int run_set(const SetOptions& options) {
         }
     }
 
+    // The library model must carry the resolved type: `IWallpaper.category()` reads
+    // it (`Model.LivelyInfo.Type`), and the mpv host derives its command line from
+    // it — the gif branch's `--scale=nearest`, and the picture check in
+    // set_playback_pos. An empty model silently makes every wallpaper "web", and
+    // mpv happens to decode by content, so the mistake is invisible until a
+    // wallpaper acts on its declared type.
+    models::LibraryModel library_model;
+    library_model.lively_info.type = type;
+    library_model.lively_info.file_name = fs::path(options.path).filename().string();
+    library_model.file_path = options.path;
+    library_model.lively_info_folder_path = fs::path(options.path).parent_path().string();
+
     if (type == models::WallpaperType::picture) {
         // A picture is not a window at all: Windows renders it. There is nothing
         // to adopt, which is why this branch completes immediately.
-        PictureWallpaper wallpaper(options.path, models::LibraryModel{}, target,
+        PictureWallpaper wallpaper(options.path, library_model, target,
                                    options.arrangement, options.scaling);
         std::printf("setting picture wallpaper on %s (scaling=%d)\n",
                     target.device_name.c_str(), static_cast<int>(options.scaling));
@@ -453,7 +481,7 @@ int run_set(const SetOptions& options) {
             ? (fs::path(base) / "plugins" / "mpv" / "LivelyProperties.json").string()
             : (fs::path(base) / "plugins" / "mpv" / "LivelyProperties.json").string();
 
-    MpvWallpaper wallpaper(options.path, models::LibraryModel{}, target, property_copy, base,
+    MpvWallpaper wallpaper(options.path, library_model, target, property_copy, base,
                            options.hw_decode);
     std::printf("launching mpv host (pid will follow)\n");
     std::printf("  ipc pipe : %s\n", wallpaper.ipc_server_name().c_str());
@@ -475,6 +503,20 @@ int run_set(const SetOptions& options) {
 #endif
     std::printf("  loaded   : %s\n", loaded ? "yes" : "no");
 
+    auto report_mpv_output = [&](const char* stage) {
+        const std::string output = wallpaper.drain_output();
+        if (output.empty())
+            return;
+        std::printf("  --- mpv stdout after %s ---\n", stage);
+        std::string line;
+        std::istringstream stream(output);
+        while (std::getline(stream, line)) {
+            if (!line.empty() && line.back() == '\r')
+                line.pop_back();
+            std::printf("  | %s\n", line.c_str());
+        }
+    };
+
     if (options.adopt) {
         const DesktopLayer layer = setup_desktop_layer();
         // The core's rule: span arrangement puts one window across the whole
@@ -482,18 +524,81 @@ int run_set(const SetOptions& options) {
         const bool attached = options.arrangement == models::WallpaperArrangement::span
                                   ? layer.set_wallpaper_span_screen(wallpaper.handle())
                                   : layer.set_wallpaper_per_screen(wallpaper.handle(), target);
-        std::printf("  adopted  : %s (workerW 0x%p)\n", attached ? "yes" : "no",
-                    static_cast<void*>(layer.worker_w));
+        // `attached` is WindowUtil.TrySetParent, whose SetParent(...) != NULL test is
+        // uninformative for a window that was top-level a moment ago (see adopt-test).
+        // The parent chain is the real check, so both are reported rather than only
+        // the reassuring one.
+        const HWND parent = GetAncestor(wallpaper.handle(), GA_PARENT);
+        const bool adopted = parent == layer.progman || parent == layer.worker_w;
+        std::printf("  attached : %s (TrySetParent)\n", attached ? "yes" : "no");
+        std::printf("  adopted  : %s (parent 0x%p, workerW 0x%p, progman 0x%p)\n",
+                    adopted ? "yes" : "NO", static_cast<void*>(parent),
+                    static_cast<void*>(layer.worker_w), static_cast<void*>(layer.progman));
         for (const auto& line : layer.diagnostics)
             std::printf("  %s\n", line.c_str());
-        if (!attached) {
-            std::fprintf(stderr, "error: failed to parent the wallpaper onto the desktop.\n");
+        if (!adopted) {
+            std::fprintf(stderr, "error: the wallpaper window is not on the desktop.\n");
             wallpaper.terminate();
             return 8;
         }
     } else {
         std::printf("  adopted  : skipped (--no-adopt)\n");
     }
+
+    report_mpv_output("load");
+
+    // Exercise the IPC path the way the UI does: through IpcMessage dispatch rather
+    // than the direct helpers, so the message-type mapping is covered too.
+    if (options.volume) {
+        std::printf("\nsending volume=%d over IPC\n", *options.volume);
+        wallpaper.set_volume(*options.volume);
+    }
+    if (options.scaler) {
+        std::printf("sending scaler=%d over IPC (lp_dropdown_scaler)\n",
+                    static_cast<int>(*options.scaler));
+        models::LivelyDropdownScaler message;
+        message.name = "Scaler";
+        message.value = static_cast<int>(*options.scaler);
+        wallpaper.send_message(message);
+    }
+    if (options.pause_probe) {
+        std::printf("pause -> 300ms -> play over IPC\n");
+        models::LivelySlider pause;
+        pause.name = "pause";
+        pause.value = 1;
+        pause.step = 0;   // whole number: mpv is strongly typed, so this sends an int
+        wallpaper.send_message(pause);
+        std::this_thread::sleep_for(std::chrono::milliseconds(300));
+        pause.value = 0;
+        wallpaper.send_message(pause);
+    }
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+    report_mpv_output("IPC commands");
+
+    if (options.screenshot) {
+        // For a gif this throws by design (the C# extracts the first frame with
+        // ImageMagick, which this port does not carry) — so the probe below is for
+        // the mpv branch, and the declared type is what selects it.
+        std::printf("\nrequesting screenshot -> %s\n", options.screenshot->c_str());
+        try {
+            wallpaper.screen_capture(*options.screenshot);
+            std::error_code ec;
+            const auto size = fs::file_size(*options.screenshot, ec);
+            std::printf("  screenshot: %s (%lld bytes)\n", ec ? "NOT WRITTEN" : "written",
+                        ec ? -1 : static_cast<long long>(size));
+            report_mpv_output("screenshot");
+            if (ec) {
+                std::fprintf(stderr, "error: mpv reported the screenshot but no file exists\n");
+                return 9;
+            }
+        } catch (const std::exception& ex) {
+            std::printf("  screenshot failed: %s\n", ex.what());
+            report_mpv_output("screenshot");
+            return 9;
+        }
+    }
+
+    report_mpv_output("steady state");
 
     // Run until the deadline, the player exits, or the user interrupts. The real
     // app keeps running here serving gRPC and watching for display changes.
@@ -600,6 +705,19 @@ int main(int argc, char** argv) {
             options.arrangement = *parsed;
         } else if (name == "seconds") {
             options.seconds = std::atoi(value.c_str());
+        } else if (name == "volume") {
+            options.volume = std::atoi(value.c_str());
+        } else if (name == "scaler") {
+            const auto parsed = parse_scaler(value);
+            if (!parsed) {
+                std::fprintf(stderr, "error: unknown --scaler=%s\n", value.c_str());
+                return 2;
+            }
+            options.scaler = parsed;
+        } else if (name == "pause-probe") {
+            options.pause_probe = true;
+        } else if (name == "screenshot") {
+            options.screenshot = value;
         } else {
             std::fprintf(stderr, "error: unknown option '%s'\n", arg.c_str());
             return 2;
