@@ -50,6 +50,10 @@ namespace csharp_probe
             {
                 return StartArgsProbe.Run(args);
             }
+            if (args.Length > 0 && args[0] == "library")
+            {
+                return LibraryProbe.Run();
+            }
 
             Emit("LivelyCloseCmd.default", new LivelyCloseCmd());
             Emit("LivelySuspendCmd.default", new LivelySuspendCmd());

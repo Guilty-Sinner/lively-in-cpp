@@ -13,6 +13,16 @@ if(MINGW)
 endif()
 
 option(LIVELY_BUILD_TESTS "Build Catch2 tests" ON)
+
+# The oracle tests compare this port against the real C# binaries, so they need
+# the upstream checkout. Default is the local dev layout (<parent>/lively in C++
+# next to <parent>/lively in C#); CI overrides both when it clones upstream into
+# a different place.
+set(LIVELY_CSHARP_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../lively in C#" CACHE PATH
+    "Path to the upstream C# Lively checkout (reference oracle)")
+set(LIVELY_PROBE_EXE_PATH
+    "${CMAKE_CURRENT_SOURCE_DIR}/tools/csharp_probe/bin/Release/net8.0/csharp_probe.exe" CACHE FILEPATH
+    "Path to the built csharp_probe.exe (dotnet build tools/csharp_probe -c Release)")
 # Builds the gRPC tranche (Lively.Grpc.Common proto contract + client port).
 # Auto-detects the gRPC toolchain and degrades gracefully when absent;
 # pass -DLIVELY_REQUIRE_RPC=ON to turn a missing toolchain into a hard error.
@@ -94,21 +104,34 @@ endif()
 add_library(lively_models STATIC
   src/lively/models/ipc_message.cpp
   src/lively/models/lively_controls.cpp
-  src/lively/models/settings_model.cpp)
+  src/lively/models/settings_model.cpp
+  src/lively/models/lively_info.cpp)
 target_include_directories(lively_models PUBLIC include)
 target_link_libraries(lively_models PUBLIC nlohmann_json::nlohmann_json)
 target_compile_definitions(lively_models PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN)
 
+# Lively.Common helpers: constants/IO/path primitives, the wallpaper-type tables
+# and the library factory (the headless core of the app).
 add_library(lively_common STATIC
   src/lively/common/constants.cpp
   src/lively/common/system_info.cpp
   src/lively/common/log_util.cpp
   src/lively/common/app_lifecycle.cpp
-  src/lively/common/pipe_client.cpp)
+  src/lively/common/pipe_client.cpp
+  src/lively/common/path_util.cpp
+  src/lively/common/file_types.cpp
+  src/lively/common/file_util.cpp
+  src/lively/common/link_util.cpp
+  src/lively/common/languages.cpp
+  src/lively/common/window_class_exclusions.cpp
+  src/lively/common/lively_info_util.cpp
+  src/lively/common/factories/wallpaper_library_factory.cpp)
 target_include_directories(lively_common PUBLIC include)
 target_link_libraries(lively_common PUBLIC lively_models)
 if(WIN32)
-  target_link_libraries(lively_common PUBLIC shell32)
+  # shell32: ShellExecute (open browser/folder); bcrypt: SHA-1/SHA-256, which the
+  # C# code gets from System.Security.Cryptography.
+  target_link_libraries(lively_common PUBLIC shell32 bcrypt)
 endif()
 
 add_library(lively_utility STATIC
@@ -205,7 +228,8 @@ if(LIVELY_BUILD_TESTS)
     tests/test_lively_props.cpp
     tests/test_settings.cpp
     tests/test_pipe_json.cpp
-    tests/test_players.cpp)
+    tests/test_players.cpp
+    tests/test_library.cpp)
   target_link_libraries(lively_tests PRIVATE lively_models lively_common lively_utility lively_players
     Catch2::Catch2WithMain)
   if(LIVELY_BUILD_RPC)
@@ -213,11 +237,14 @@ if(LIVELY_BUILD_TESTS)
     target_link_libraries(lively_tests PRIVATE lively_rpc)
     target_compile_definitions(lively_tests PRIVATE LIVELY_RPC_ENABLED=1)
   endif()
+  # LIVELY_REPO_ROOT is the parent of LIVELY_CSHARP_ROOT: the oracle tests build
+  # upstream-relative paths from it (see tests/test_lively_props.cpp).
+  get_filename_component(LIVELY_REPO_ROOT_DIR "${LIVELY_CSHARP_ROOT}" DIRECTORY)
   target_compile_definitions(lively_tests PRIVATE
     LIVELY_GOLDENS_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests/goldens"
-    LIVELY_REPO_ROOT="${CMAKE_CURRENT_SOURCE_DIR}/.."
+    LIVELY_REPO_ROOT="${LIVELY_REPO_ROOT_DIR}"
     # C# oracle probe (built by dotnet) + scratch dir for cross-language tests.
-    LIVELY_PROBE_EXE="${CMAKE_CURRENT_SOURCE_DIR}/tools/csharp_probe/bin/Release/net8.0/csharp_probe.exe"
+    LIVELY_PROBE_EXE="${LIVELY_PROBE_EXE_PATH}"
     LIVELY_CROSSLANG_DIR="${CMAKE_CURRENT_BINARY_DIR}/crosslang")
   if(LIVELY_BUILD_ML)
     target_sources(lively_tests PRIVATE tests/test_midas.cpp)

@@ -128,6 +128,18 @@ std::wstring MiDaSDir() { return memo([] { return combine(BaseDir(), L"Midas"); 
 
 } // namespace machine_learning
 
+std::string TempVideoDirNarrow() {
+    // Narrow view of TempVideoDir() for the filesystem helpers that work in
+    // std::string (LivelyCommonPaths.TempVideoDir feeds LibraryModel paths).
+    const std::wstring ws = common_paths::TempVideoDir();
+    if (ws.empty()) return {};
+    const int size = WideCharToMultiByte(CP_UTF8, 0, ws.c_str(), -1, nullptr, 0, nullptr, nullptr);
+    if (size <= 1) return {};
+    std::string out(static_cast<std::size_t>(size) - 1, '\0');
+    WideCharToMultiByte(CP_UTF8, 0, ws.c_str(), -1, out.data(), size, nullptr, nullptr);
+    return out;
+}
+
 std::string UserLocalAppDataDir() {
     // Same Known-Folder resolution as AppDataDir's fallback, returned narrow.
     wchar_t* known = nullptr;

@@ -10,6 +10,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- Same package and version Lively.Common uses: the package-detection oracle
+         writes archives with the real SharpZipLib so the port's zip reader is
+         compared against the library upstream actually calls. -->
+    <PackageReference Include="SharpZipLib" Version="1.4.2" />
     <ProjectReference Include="..\..\..\lively in C#\src\Lively\Lively.Models\Lively.Models.csproj" />
     <ProjectReference Include="..\..\..\lively in C#\src\Lively\Lively.Common\Lively.Common.csproj" />
     <ProjectReference Include="..\..\..\lively in C#\src\Lively\Lively.Grpc.Common\Lively.Grpc.Common.csproj" />

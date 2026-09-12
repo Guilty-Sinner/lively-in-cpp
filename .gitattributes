@@ -20,3 +20,8 @@ CMakeLists.txt text eol=lf
 *.tar.xz binary
 *.png    binary
 *.ico    binary
+*.zip    binary
+
+# Oracle fixtures are transcribed output: pin them to LF so a checkout on any
+# platform yields the bytes the tests compare against.
+tests/goldens/** text eol=lf

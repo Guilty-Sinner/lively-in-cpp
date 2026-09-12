@@ -14,8 +14,20 @@ dotnet run -c Release > ../../tests/goldens/ipc_csharp.txt
 cmake --build ../../build && ctest --test-dir ../../build -C Release
 ```
 
-First capture (2026-09): **all 17 fixtures matched the C++ port
-byte-for-byte** — Type-first key order, ordinal enums, `null` string emission,
+## Fixtures captured from upstream (upstream pin: `c1036feb`)
+
+`tests/goldens/` holds both the oracle *output* and, where needed, the *input*
+that produced it. `mpv_LivelyProperties.json` + `mpv_LivelyProperties.loc.json`
+are verbatim copies of
+`lively in C#/src/Lively/Lively/Assets/Plugins/Mpv/` (GPL-3.0, same as this
+derivative) so `tests/test_lively_props.cpp` can run in a source-only checkout
+such as CI, with no C# reference tree. When the upstream assets are present the
+test prefers those; the vendored copies are the fallback.
+
+## First capture
+
+All 17 IPC fixtures matched the C++ port
+byte-for-byte — Type-first key order, ordinal enums, `null` string emission,
 and Newtonsoft's raw-UTF-8 + `\"`/`\n` escaping all confirmed. One test-side
 bug (a transposed unicode escape) was caught by the oracle, demonstrating the
 loop works.
@@ -24,6 +36,31 @@ The same flow (run C# binary + C++ binary on identical input, byte-compare
 stdout) is the differential harness described in `README.md` and applies to:
 `lively_watchdog` (stdin protocol), `lively_cmd` (parse outcomes), and
 `lively_console_demo` (menu flows, once phase 2 links the gRPC clients).
+
+## The library tranche (`library` mode) — PASSED
+
+`dotnet run -c Release --project tools/csharp_probe -- library` emits a 314-line
+transcript covering LivelyInfoModel serialization, FileTypes, FileUtil, LinkUtil,
+Languages, WindowClassExclusions, WallpaperExtensions, LivelyInfoUtil and
+WallpaperLibraryFactory, and writes it to `tests/goldens/library_csharp.txt`.
+
+The probe builds its own fixture tree under `%TEMP%\lively_library_probe` and
+relativizes every path to it (`<root>`) plus `%LOCALAPPDATA%` (`<lap>`), so the
+golden carries no machine-specific text and is stable across machines. Two
+dependencies are intentional:
+
+* **SharpZipLib 1.4.2** (same version as Lively.Common) writes the package
+  fixtures, so the port's own central-directory reader is compared against the
+  library upstream really uses — including the case-insensitive entry lookup
+  (`livelyinfo.JSON` is found) and the fact that a *nested* `sub/LivelyInfo.json`
+  is not (`nested` → `false`).
+* **Invariant culture**, because `FileUtil.SizeSuffix` formats with `"{0:n1}"`,
+  which is culture-sensitive. The port documents that deviation at the function.
+
+The C++ side replays the same transcript (`tests/test_library.cpp`) and is part of
+the ordinary suite, so it runs in CI without a C# checkout. The zip fixtures it
+uses under `tests/goldens/fixtures/` are committed (built with python's `zipfile`,
+same entry names).
 
 ## Differential fuzzing (CommandLineParser) — PASSED
 

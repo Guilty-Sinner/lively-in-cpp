@@ -1,0 +1,314 @@
+livelyinfo.appversion	1.0.0.0
+livelyinfo.default.serialize	{\r\n  \"AppVersion\": \"0.0.0.0\",\r\n  \"Title\": null,\r\n  \"Thumbnail\": null,\r\n  \"Preview\": null,\r\n  \"Desc\": null,\r\n  \"Author\": null,\r\n  \"License\": null,\r\n  \"Contact\": null,\r\n  \"Type\": 1,\r\n  \"FileName\": null,\r\n  \"Arguments\": null,\r\n  \"IsAbsolutePath\": false,\r\n  \"Id\": null,\r\n  \"Tags\": null,\r\n  \"Version\": 0\r\n}
+livelyinfo.full.serialize	{\r\n  \"AppVersion\": \"0.0.0.0\",\r\n  \"Title\": \"A \\\"quoted\\\" title\",\r\n  \"Thumbnail\": \"thumb.png\",\r\n  \"Preview\": null,\r\n  \"Desc\": \"line1\\nline2\\ttabbed\",\r\n  \"Author\": \"Ünïcode ✓\",\r\n  \"License\": \"GPL-3.0\",\r\n  \"Contact\": \"https://example.com/u/1\",\r\n  \"Type\": 7,\r\n  \"FileName\": \"video.mp4\",\r\n  \"Arguments\": \"--loop true\",\r\n  \"IsAbsolutePath\": true,\r\n  \"Id\": \"abc123\",\r\n  \"Tags\": [\r\n    \"tag1\",\r\n    \"タグ2\",\r\n    \"tag/3\"\r\n  ],\r\n  \"Version\": 4\r\n}
+livelyinfo.reparsed	title=[A "quoted" title];thumb=[thumb.png];preview=<null>;desc=[line1\nline2\ttabbed];author=[Ünïcode ✓];license=[GPL-3.0];contact=[https://example.com/u/1];type=7;file=[video.mp4];args=[--loop true];abs=true;id=[abc123];tags=tag1|タグ2|tag/3;version=4
+livelyinfo.sparse	title=[only-title];thumb=<null>;preview=<null>;desc=<null>;author=<null>;license=<null>;contact=<null>;type=1;file=<null>;args=<null>;abs=false;id=<null>;tags=<null>;version=0
+librarymodel.blank-title	---
+librarymodel.null-title	---
+librarymodel.set-title	Real
+librarymodel.defaults	ready;-/- MB;unsub
+filetypes.gettype..wmv	7
+filetypes.gettype..avi	7
+filetypes.gettype..flv	7
+filetypes.gettype..m4v	7
+filetypes.gettype..mkv	7
+filetypes.gettype..mov	7
+filetypes.gettype..mp4	7
+filetypes.gettype..mp4v	7
+filetypes.gettype..mpeg4	7
+filetypes.gettype..mpg	7
+filetypes.gettype..webm	7
+filetypes.gettype..ogm	7
+filetypes.gettype..ogv	7
+filetypes.gettype..ogx	7
+filetypes.gettype..jpg	11
+filetypes.gettype..jpeg	11
+filetypes.gettype..png	11
+filetypes.gettype..bmp	11
+filetypes.gettype..tif	11
+filetypes.gettype..tiff	11
+filetypes.gettype..webp	11
+filetypes.gettype..jfif	11
+filetypes.gettype..gif	8
+filetypes.gettype..html	1
+filetypes.gettype..exe	0
+filetypes.gettype..zip	-1
+filetypes.gettype..txt	-1
+filetypes.gettype..heic	-1
+filetypes.gettype..MP4	7
+filetypes.gettype..PNG	11
+filetypes.gettype..Exe	0
+filetypes.gettype..GIF	8
+filetypes.gettype.<none>	-1
+filetypes.gettype..	-1
+filetypes.gettype..htm	-1
+filetypes.ispackext.a.zip	true
+filetypes.ispackext.a.ZIP	true
+filetypes.ispackext.a.Zip	true
+filetypes.ispackext.a.7z	false
+filetypes.ispackext.zip	false
+filetypes.ispackext.a.zipx	false
+filetypes.ispkg.ok.zip	true
+filetypes.ispkg.nested.zip	false
+filetypes.ispkg.case.zip	true
+filetypes.ispkg.nometa.zip	false
+filetypes.ispkg.garbage.zip	false
+filetypes.ispkg.missing.zip	false
+filetypes.supported.0	7:.wmv,.avi,.flv,.m4v,.mkv,.mov,.mp4,.mp4v,.mpeg4,.mpg,.webm,.ogm,.ogv,.ogx
+filetypes.supported.1	11:.jpg,.jpeg,.png,.bmp,.tif,.tiff,.webp,.jfif
+filetypes.supported.2	8:.gif
+filetypes.supported.3	1:.html
+filetypes.supported.4	2:.html
+filetypes.supported.5	0:.exe
+filetypes.supported.6	6:.exe
+linkutil.lastsegment.https://example.com/	[example.com]
+linkutil.lastsegment.https://example.com	[example.com]
+linkutil.lastsegment.https://example.com//	[example.com]
+linkutil.lastsegment.https://www.example.com/	[example.com]
+linkutil.lastsegment.https://www.example.com/a/b.html	[b.html]
+linkutil.lastsegment.http://example.com/path/to/file.gif?v=2	[file.gif]
+linkutil.lastsegment.https://example.com/dir/	[dir]
+linkutil.lastsegment.https://example.com/a?x=1	[a]
+linkutil.lastsegment.https://example.com/#frag	[example.com]
+linkutil.lastsegment.https://example.com/a//b	[b]
+linkutil.lastsegment.HTTPS://EXAMPLE.COM/Path/File.HTML	[File.HTML]
+linkutil.lastsegment.not a url	[not a url]
+linkutil.lastsegment.<empty>	[]
+linkutil.lastsegment./local/path/file.html	[/local/path/file.html]
+linkutil.lastsegment.local/path/file.html	[local/path/file.html]
+linkutil.lastsegment./file.html	[/file.html]
+linkutil.lastsegment.C:\\local\\path\\file.html	[file.html]
+linkutil.lastsegment.file:///C:/local/path/file.html	[file.html]
+linkutil.stablehost.C:\\wallpapers\\one\\file.html	ba9d194e544afc2e
+linkutil.stablehost.C:\\wallpapers\\two\\file.html	91938cb4fb8ea6a3
+linkutil.stablehost.C:\\wallpapers\\two\\nested\\file.html	5ea39d3c7e39069f
+linkutil.stablehost.relative\\dir\\file.html	6be76d1dbda49248
+linkutil.sanitize.example.com/page	https://example.com/page
+linkutil.sanitize.https://example.com/page	https://example.com/page
+linkutil.sanitize.http://example.com	http://example.com/
+linkutil.sanitize.https://example.com:8080/x	https://example.com:8080/x
+linkutil.sanitize./abs/path	<invalid>
+linkutil.sanitize.  	<invalid>
+fileutil.safefilename.plain	[plain]
+fileutil.safefilename.a/b	[a_b]
+fileutil.safefilename.a\\b	[a_b]
+fileutil.safefilename.a:b	[a_b]
+fileutil.safefilename.a*b?c	[a_b_c]
+fileutil.safefilename.a<b>c\pd"e	[a_b_c_d_e]
+fileutil.safefilename.dot.name.txt	[dot.name.txt]
+fileutil.safefilename.con	[con]
+fileutil.safefilename.имя файла	[имя файла]
+fileutil.safefilename.trailing 	[trailing ]
+fileutil.safefilename. leading	[ leading]
+fileutil.nextavailable.a.txt	a (3).txt
+fileutil.nextavailable.b	b (2)
+fileutil.nextavailable.c.txt	c (1).txt
+fileutil.nextavailable.d.txt	d.txt
+fileutil.sha256.helloworld	b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9
+fileutil.sizesuffix.0	[0.0 bytes]
+fileutil.sizesuffix.1	[1.0 bytes]
+fileutil.sizesuffix.999	[999.0 bytes]
+fileutil.sizesuffix.1000	[1.0 KB]
+fileutil.sizesuffix.1023	[1.0 KB]
+fileutil.sizesuffix.1024	[1.0 KB]
+fileutil.sizesuffix.1536	[1.5 KB]
+fileutil.sizesuffix.999999	[976.6 KB]
+fileutil.sizesuffix.1048576	[1.0 MB]
+fileutil.sizesuffix.1234567890	[1.1 GB]
+fileutil.sizesuffix.1099511627776	[1.0 TB]
+fileutil.sizesuffix.-1	[-1.0 bytes]
+fileutil.sizesuffix.-1536	[-1.5 KB]
+fileutil.sizesuffix.1536.0	[2 KB]
+fileutil.sizesuffix.1536.1	[1.5 KB]
+fileutil.sizesuffix.1536.2	[1.50 KB]
+fileutil.sizesuffix.1536.3	[1.500 KB]
+fileutil.sizesuffix.2560.0	[3 KB]
+fileutil.sizesuffix.3584.0	[4 KB]
+fileutil.isgreater.5.0	true
+fileutil.isgreater.5.5	true
+fileutil.isgreater.5.6	true
+fileutil.getfiles.topmost	a.png,b.gif
+fileutil.getfiles.all	a.png,b.gif,c.html,d.png
+fileutil.getfiles.none	
+fileutil.dirsize	5
+jsonutil.write	{\r\n  \"b\": 1,\r\n  \"a\": [\r\n    1,\r\n    2\r\n  ],\r\n  \"nested\": {\r\n    \"x\": null\r\n  },\r\n  \"text\": \"line1\\nline2\"\r\n}
+wallpaperext.app.online	false
+wallpaperext.app.web	false
+wallpaperext.app.video	false
+wallpaperext.app.app	true
+wallpaperext.app.media	false
+wallpaperext.app.localweb	false
+wallpaperext.app.directoryproject	true
+wallpaperext.app.deviceinput	true
+wallpaperext.web.online	false
+wallpaperext.web.web	true
+wallpaperext.web.video	false
+wallpaperext.web.app	false
+wallpaperext.web.media	false
+wallpaperext.web.localweb	true
+wallpaperext.web.directoryproject	true
+wallpaperext.web.deviceinput	true
+wallpaperext.webaudio.online	false
+wallpaperext.webaudio.web	true
+wallpaperext.webaudio.video	false
+wallpaperext.webaudio.app	false
+wallpaperext.webaudio.media	false
+wallpaperext.webaudio.localweb	true
+wallpaperext.webaudio.directoryproject	true
+wallpaperext.webaudio.deviceinput	true
+wallpaperext.url.online	true
+wallpaperext.url.web	true
+wallpaperext.url.video	false
+wallpaperext.url.app	false
+wallpaperext.url.media	false
+wallpaperext.url.localweb	false
+wallpaperext.url.directoryproject	false
+wallpaperext.url.deviceinput	true
+wallpaperext.bizhawk.online	false
+wallpaperext.bizhawk.web	false
+wallpaperext.bizhawk.video	false
+wallpaperext.bizhawk.app	true
+wallpaperext.bizhawk.media	false
+wallpaperext.bizhawk.localweb	false
+wallpaperext.bizhawk.directoryproject	true
+wallpaperext.bizhawk.deviceinput	true
+wallpaperext.unity.online	false
+wallpaperext.unity.web	false
+wallpaperext.unity.video	false
+wallpaperext.unity.app	true
+wallpaperext.unity.media	false
+wallpaperext.unity.localweb	false
+wallpaperext.unity.directoryproject	true
+wallpaperext.unity.deviceinput	true
+wallpaperext.godot.online	false
+wallpaperext.godot.web	false
+wallpaperext.godot.video	false
+wallpaperext.godot.app	true
+wallpaperext.godot.media	false
+wallpaperext.godot.localweb	false
+wallpaperext.godot.directoryproject	true
+wallpaperext.godot.deviceinput	true
+wallpaperext.video.online	false
+wallpaperext.video.web	false
+wallpaperext.video.video	true
+wallpaperext.video.app	false
+wallpaperext.video.media	true
+wallpaperext.video.localweb	false
+wallpaperext.video.directoryproject	false
+wallpaperext.video.deviceinput	false
+wallpaperext.gif.online	false
+wallpaperext.gif.web	false
+wallpaperext.gif.video	false
+wallpaperext.gif.app	false
+wallpaperext.gif.media	true
+wallpaperext.gif.localweb	false
+wallpaperext.gif.directoryproject	false
+wallpaperext.gif.deviceinput	false
+wallpaperext.unityaudio.online	false
+wallpaperext.unityaudio.web	false
+wallpaperext.unityaudio.video	false
+wallpaperext.unityaudio.app	true
+wallpaperext.unityaudio.media	false
+wallpaperext.unityaudio.localweb	false
+wallpaperext.unityaudio.directoryproject	true
+wallpaperext.unityaudio.deviceinput	true
+wallpaperext.videostream.online	true
+wallpaperext.videostream.web	false
+wallpaperext.videostream.video	true
+wallpaperext.videostream.app	false
+wallpaperext.videostream.media	true
+wallpaperext.videostream.localweb	false
+wallpaperext.videostream.directoryproject	false
+wallpaperext.videostream.deviceinput	false
+wallpaperext.picture.online	false
+wallpaperext.picture.web	false
+wallpaperext.picture.video	false
+wallpaperext.picture.app	false
+wallpaperext.picture.media	true
+wallpaperext.picture.localweb	false
+wallpaperext.picture.directoryproject	false
+wallpaperext.picture.deviceinput	false
+languages.count	46
+languages.0	English|en-US
+languages.1	日本語|ja-JP
+languages.2	中文|zh-CN
+languages.3	中文 (繁體)|zh-Hant
+languages.4	한국어|ko-KR
+languages.5	Pусский|ru-RU
+languages.6	Українська|uk-UA
+languages.7	Español (España)|es-ES
+languages.8	Español (México)|es-MX
+languages.9	Italiano|it-IT
+languages.10	عربى|ar-AE
+languages.11	فارسی|fa-IR
+languages.12	עִברִית|he-IL
+languages.13	Français|fr-FR
+languages.14	Deutsch|de-DE
+languages.15	Polski|pl-PL
+languages.16	Português (Portugal)|pt-PT
+languages.17	Português (Brasil)|pt-BR
+languages.18	Filipino|fil-PH
+languages.19	Finnish|fi-FI
+languages.20	Bahasa Indonesia|id-ID
+languages.21	Magyar|hu-HU
+languages.22	Svenska|sv-SE
+languages.23	Bahasa Melayu|ms-MY
+languages.24	Nederlands|nl-NL
+languages.25	Tiếng Việt|vi-VN
+languages.26	Català|ca-ES
+languages.27	Türkçe|tr-TR
+languages.28	Српски језик|sr-Latn
+languages.29	Српска ћирилица|sr-Cyrl
+languages.30	Ελληνικά|el-GR
+languages.31	हिन्दी|hi-IN
+languages.32	Azərbaycan|az-Latn
+languages.33	Čeština|cs-CZ
+languages.34	Български|bg-BG
+languages.35	Norwegian Bokmål|nb-NO
+languages.36	Lietuvių|lt-LT
+languages.37	Afrikaans|af-ZA
+languages.38	Dansk|da-DK
+languages.39	беларуская мова|be-BY
+languages.40	Galego|gl-ES
+languages.41	қазақ тілі|kk-KZ
+languages.42	မြန်မာဘာသာ|my-MM
+languages.43	slovenčina|sk-SK
+languages.44	Gaeilge|ga-IE
+languages.45	Română|ro-RO
+windowclasses.count	11
+windowclasses.0	MultitaskingViewFrame
+windowclasses.1	NotifyIconOverflowWindow
+windowclasses.2	Progman
+windowclasses.3	RainmeterMeterWindow
+windowclasses.4	Shell_SecondaryTrayWnd
+windowclasses.5	Shell_TrayWnd
+windowclasses.6	Windows.UI.Core.CoreWindow
+windowclasses.7	WindowsDashboard
+windowclasses.8	WorkerW
+windowclasses.9	XamlExplorerHostIslandWindow
+windowclasses.10	_cls_desk_
+windowclasses.case-insensitive	true
+livelyinfoutil.localized.fr-FR	<null>
+livelyinfoutil.localized.en-US	[English title]|[English desc]
+livelyinfoutil.localized.zh-CN	[中文标题]|<null>
+livelyinfoutil.localized.ZH-CN	<null>
+livelyinfoutil.localized.zh	[base zh]|<null>
+livelyinfoutil.localized.zh-Hans	[base zh]|<null>
+livelyinfoutil.localized.es-ES	<null>
+livelyinfoutil.missing	<null>
+livelyinfoutil.corrupt	<null>
+factory.createdirectory.absapp	title=[absapp];desc=[d];author=[a];subscribed=false;file=[<root>/lib/absapp/main.exe];folder=[<root>/lib/absapp];locpath=[<root>/lib/absapp/LivelyInfo.loc.json];proploc=[<root>/lib/absapp/LivelyProperties.loc.json];prop=[<root>/lib/absapp/LivelyProperties.json];preview=[<root>/lib/absapp/prev.png];thumb=[<root>/lib/absapp/thumb.png];image=[<root>/lib/absapp/prev.png]
+factory.app-props-exists.absapp	file
+factory.createdirectory.relweb	title=[relweb];desc=[d];author=[a];subscribed=false;file=[<root>/lib/relweb/index.html];folder=[<root>/lib/relweb];locpath=[<root>/lib/relweb/LivelyInfo.loc.json];proploc=[<root>/lib/relweb/LivelyProperties.loc.json];prop=<null>;preview=[<root>/lib/relweb/prev.png];thumb=<null>;image=[<root>/lib/relweb/prev.png]
+factory.createdirectory.online	title=[online];desc=[d];author=[a];subscribed=false;file=[https://example.com/wall];folder=[<root>/lib/online];locpath=[<root>/lib/online/LivelyInfo.loc.json];proploc=[<root>/lib/online/LivelyProperties.loc.json];prop=<null>;preview=<null>;thumb=<null>;image=<null>
+factory.createdirectory.video	title=[video];desc=[d];author=[a];subscribed=false;file=[<root>/lib/video/clip.mp4];folder=[<root>/lib/video];locpath=[<root>/lib/video/LivelyInfo.loc.json];proploc=[<lap>/Lively Wallpaper/Mpv/LivelyProperties.loc.json];prop=[<lap>/Lively Wallpaper/Mpv/LivelyProperties.json];preview=<null>;thumb=[<root>/lib/video/thumb.png];image=[<root>/lib/video/thumb.png]
+factory.createdirectory.mediaonly	title=[mediaonly];desc=[d];author=[a];subscribed=false;file=[<root>/lib/mediaonly/pic.png];folder=[<root>/lib/mediaonly];locpath=[<root>/lib/mediaonly/LivelyInfo.loc.json];proploc=[<lap>/Lively Wallpaper/Mpv/LivelyProperties.loc.json];prop=[<lap>/Lively Wallpaper/Mpv/LivelyProperties.json];preview=[<root>/lib/mediaonly/prev.png];thumb=<null>;image=[<root>/lib/mediaonly/prev.png]
+factory.createdirectory.missing-all	title=[missing-all];desc=[d];author=[a];subscribed=false;file=[<root>/lib/missing-all/index.html];folder=[<root>/lib/missing-all];locpath=[<root>/lib/missing-all/LivelyInfo.loc.json];proploc=[<root>/lib/missing-all/LivelyProperties.loc.json];prop=<null>;preview=<null>;thumb=<null>;image=<null>
+factory.metadata.missing	FileNotFoundException
+factory.metadata.corrupt	JsonReaderException
+factory.frommetadata.nopreview	[t]|[thumb.png]|<null>
+factory.createpackage.online	title=[wall-42];thumb=[];preview=[];desc=<null>;author=<null>;license=<null>;contact=[https://example.com/gallery/wall-42];type=3;file=[https://example.com/gallery/wall-42];args=<null>;abs=true;id=<null>;tags=<null>;version=0
+factory.createpackage.online.file	{\r\n  \"AppVersion\": \"1.0.0.0\",\r\n  \"Title\": \"wall-42\",\r\n  \"Thumbnail\": \"\",\r\n  \"Preview\": \"\",\r\n  \"Desc\": null,\r\n  \"Author\": null,\r\n  \"License\": null,\r\n  \"Contact\": \"https://example.com/gallery/wall-42\",\r\n  \"Type\": 3,\r\n  \"FileName\": \"https://example.com/gallery/wall-42\",\r\n  \"Arguments\": null,\r\n  \"IsAbsolutePath\": true,\r\n  \"Id\": null,\r\n  \"Tags\": null,\r\n  \"Version\": 0\r\n}
+factory.createpackage.videofile	title=[my clip];thumb=[];preview=[];desc=<null>;author=<null>;license=<null>;contact=[];type=7;file=[newvideo/my clip.mp4];args=<null>;abs=true;id=<null>;tags=<null>;version=0
+factory.createpackage.videofile.file	{\r\n  \"AppVersion\": \"1.0.0.0\",\r\n  \"Title\": \"my clip\",\r\n  \"Thumbnail\": \"\",\r\n  \"Preview\": \"\",\r\n  \"Desc\": null,\r\n  \"Author\": null,\r\n  \"License\": null,\r\n  \"Contact\": \"\",\r\n  \"Type\": 7,\r\n  \"FileName\": \"newvideo/my clip.mp4\",\r\n  \"Arguments\": null,\r\n  \"IsAbsolutePath\": true,\r\n  \"Id\": null,\r\n  \"Tags\": null,\r\n  \"Version\": 0\r\n}
+factory.createpackage.already-packaged	InvalidOperationException

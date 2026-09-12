@@ -15,7 +15,8 @@ requirements document; every mapping below is deliberate.
 | Lively.Utility.Watchdog | 159 | **Ported** — protocol + Win32 main, tests green | `src/lively/utility/watchdog` |
 | Lively.Utility.Commandline | 79 | **Ported** — all 7 verbs, tests green | `src/lively/utility/commandline` |
 | Lively.Utility.ConsoleDemo | 121 | **Ported** (menu + phase-2 stubs for gRPC calls) | `src/lively/utility/console_demo` |
-| Lively.Common (helpers) | ~1,700 of 9,253 | **Ported** — Constants, SystemInfo, LogUtil, AppLifeCycleUtil, `JsonUtil`/`JsonStorage`, `PipeClient` (Win32 named pipe) | `src/lively/common` |
+| Lively.Common (helpers) | ~3,000 of 9,253 | **Ported** — Constants, SystemInfo, LogUtil, AppLifeCycleUtil, `JsonUtil`/`JsonStorage`, `PipeClient` (Win32 named pipe); `FileTypes` (incl. a zip central-directory reader replacing SharpZipLib), `FileUtil`, `LinkUtil`, `Languages`, `WindowClassExclusions`, `WallpaperExtensions`, `LivelyInfoUtil`, `System.IO.Path` primitives — all transcript-verified against the C# oracle | `src/lively/common` |
+| Lively (core) — library/metadata slice | ~600 of 15,815 | **Ported** — `LivelyInfoModel` (+ its byte-exact `livelyinfo.json` writer), `LibraryModel`, `LivelyInfoLocalizationFile`, `WallpaperLibraryFactory` (`GetMetadata`, `CreateFromDirectory`, `CreateFromMetadata`, `CreateWallpaperPackage`, `ConvertAbsoluteToRelativePath`). This is the headless slice: what a library entry *is*, and every path rule that fills it. The rest of the core (WorkerW, per-display placement, wallpaper lifecycle) is not started | `src/lively/models`, `src/lively/common/factories` |
 | Lively.Common.Services | 830 | **Ported** — `GithubUpdaterService`, `HttpDownloadService`, `NAudioVisualizerService` (WASAPI loopback + FFT); `NpsmNowPlayingService` is a documented stub (NPSMLib wraps undocumented WinRT internals with no native surface) | `src/lively/services` |
 | Lively.Grpc.Client | 1,261 | **Ported (complete — all 5 clients)**: `CommandsClient`, `DesktopCoreClient`, `DisplayManagerClient`, `AppUpdaterClient`, `UserSettingsClient` — coroutine gRPC clients with server-streaming subscriptions, events, typed error mapping, full 74-field settings proto mapping; wire-compatibility proven against a real C# server ([.crosslang] oracle test) | `src/lively/rpc`, `proto/` |
 | Lively.Gallery.Client | 653 | **Ported** — full REST client over WinHTTP (search/subscriptions/auth/refresh/health), incl. the C# quirks (both providers POST to `auth/google-token`, unencoded tags, truncated-MB progress) and the shared `net::HttpClient` | `src/lively/gallery`, `src/lively/net` |
@@ -24,8 +25,8 @@ requirements document; every mapping below is deliberate.
 | Lively.Player.WebView2 | 1,199 | `StartArgs` contract **ported + oracle-verified**; window/rendering not started | `src/lively/players` |
 | Lively.Player.CefSharp | 1,346 | `StartArgs` contract **ported + oracle-verified**; window/rendering not started | `src/lively/players` |
 | Lively.ML | 193 | **Ported** — MiDaS depth estimation over the onnxruntime C API with WIC image decode/resize; runtime API-version negotiation (see *Toolchain note*) | `src/lively/ml` |
-| Lively.Common | 9,253 | Not started (Phase 2) | — |
-| Lively (core) | 15,815 | Not started (Phase 2) | — |
+| Lively.Common | 9,253 | Remaining: Helpers/{Shell,Hardware,Pinvoke,MVVM}, factories for applications/rules, COM interop — Phase 2 | — |
+| Lively (core) | 15,815 | Remaining: WorkerW desktop integration, per-display placement, wallpaper lifecycle — Phase 2 | — |
 | Lively.UI.Shared / UI.WinUI | 11,284 | Not started (Phase 3, C++/WinRT) | — |
 
 ## Translation map (per `prompt.txt`)
@@ -64,7 +65,17 @@ requirements document; every mapping below is deliberate.
    status/headers made every non-200 path silently look like success.)
 6. **Settings persistence**: `settings.json` is byte-identical to the C#
    `JsonConvert` default output (oracle fixture `tests/goldens/settings_csharp.json`).
-7. **Player launch contract**: the four `Lively.Player.*/StartArgs` option sets parse
+7. **Library/metadata rules**: `library_csharp.txt` is a 314-line transcript of the C#
+   side of the library tranche — `FileTypes.GetFileType` over every supported extension,
+   zip package detection (archives written by the real SharpZipLib), the exhaustive
+   `WallpaperExtensions` matrix (12 types × 8 predicates), `LinkUtil` last-segment/stable-host
+   rules, `FileUtil` filename/index/size-formatting behaviour, the 46-entry language table,
+   `livelyinfo.json` bytes, and `WallpaperLibraryFactory.CreateFromDirectory` for the four
+   metadata shapes (absolute local, relative local, online, media). The port reproduces it
+   line for line — including the traps: a media wallpaper falls back to the bundled player
+   properties under `%LOCALAPPDATA%`, and with `IsAbsolutePath` the property file is looked
+   up next to the *executable*, not in the wallpaper folder.
+8. **Player launch contract**: the four `Lively.Player.*/StartArgs` option sets parse
    identically to CommandLineParser 2.9.1 — verified by a 1,500-case differential run
    (`[.players-oracle]`). This is the interface the core uses to launch a wallpaper
    player, so its quirks are load-bearing, e.g. `bool` is a *switch* (so
@@ -73,9 +84,12 @@ requirements document; every mapping below is deliberate.
 
 ## Verification strategy
 
-- **Golden master / characterization tests** (`tests/golden`): fixtures generated from the
+- **Golden master / characterization tests** (`tests/goldens`): fixtures generated from the
   C# binaries (run `dotnet run --project "lively in C#/src/Lively/Lively.Utility.ConsoleDemo"`)
-  are compared byte-for-byte against C++ output.
+  are compared byte-for-byte against C++ output. Regenerate a specific one with the probe:
+  `dotnet run -c Release --project tools/csharp_probe -- <mode>` where `<mode>` is
+  `library` / `props` / `settings` / a bare run for the IPC fixtures — see
+  `tools/generate_csharp_goldens.md`.
 - **Differential fuzzing** (`tools/fuzz_differential.py`): the same generated argv is
   fed to the real C# `CommandLineParser` (via `tools/csharp_probe fuzz`) and to the C++
   binary; the canonical outcome lines must match. 4,500+ verb cases and 1,500 player-args
@@ -109,9 +123,38 @@ and with gRPC: `lively_rpc` (proto bindings + the five gRPC clients).
 Libraries: `lively_net` (WinHTTP), `lively_gallery`, `lively_services`, `lively_ml`,
 `lively_players`.
 
-The two oracle tests that shell out to the C# probe are hidden from a plain run
-(`[.crosslang]`, `[.players-oracle]`). Run them explicitly once the probe is built:
-`powershell -File tools/run_tests.ps1 -Filter "[.players-oracle]"`.
+The oracle tests that shell out to the C# probe are hidden from a plain run
+(`[.crosslang]`, `[.players-oracle]`), so `ctest` never discovers them; run them
+explicitly once the probe is built:
+`powershell -File tools/run_tests.ps1 -Filter "[.players-oracle]"`. The library
+tranche oracle (`[library][oracle]`) needs no probe — it replays a committed
+transcript — so it is part of the normal suite.
+
+Two cache variables locate the reference oracle (both default to the local dev
+layout, so a sibling `lively in C#` checkout needs no flags):
+
+- `LIVELY_CSHARP_ROOT` — the upstream C# checkout.
+- `LIVELY_PROBE_EXE_PATH` — the built `csharp_probe.exe`.
+
+Only the hidden oracle tests need either of them; the rest of the suite is
+self-contained (see *Continuous integration*).
+
+### Continuous integration
+
+`.github/workflows/ci.yml` implements the two verification layers described above:
+
+- **`build-test`** — MSYS2 UCRT64 toolchain, matrix over `LIVELY_BUILD_RPC=ON|OFF`,
+  `ctest` (66 / 57 cases). **No upstream C# checkout is required**: the oracle
+  *goldens* are committed and the LivelyProperty input fixtures are vendored, so
+  this runs on every push and pull request.
+- **`oracle`** — checks out upstream Lively at the pinned commit, builds
+  `tools/csharp_probe` with dotnet, and runs the differential oracle tests:
+  player start-args against the real CommandLineParser 2.9.1, and the C++ gRPC
+  client against a real C# server.
+
+Running the whole oracle layer in CI is what makes the equivalence claim
+reproducible by anyone with the repository, rather than a claim about one
+developer's machine.
 
 ### Running the tests
 
@@ -132,8 +175,8 @@ Current verified environment: MinGW-w64 GCC 16.1 (WinLibs UCRT, via winget
 `BrechtSanders.WinLibs.POSIX.UCRT`), CMake 4.4, MSYS2 UCRT64 gRPC 1.82 +
 protobuf 35.1 —
 
-- **RPC-off build**: 57 test cases / 471 assertions, all passing.
-- **RPC-on build**: 66 test cases / 583 assertions, all passing (stable across reruns),
+- **RPC-off build**: 65 test cases / 611 assertions, all passing.
+- **RPC-on build**: 72 test cases / 719 assertions, all passing (stable across reruns),
   including the `[.crosslang]` C++-client ↔ C#-server oracle test and the
   DesktopCore / DisplayManager / AppUpdater / UserSettings streaming + event tests.
 - **Gallery / services / HTTP**: a raw loopback HTTP server exercises the WinHTTP
@@ -143,6 +186,10 @@ protobuf 35.1 —
 - **SettingsModel JSON** is byte-identical to the real C# `JsonConvert` output
   (oracle fixture `tests/goldens/settings_csharp.json`; the oracle caught and
   fixed a wrong `DisplayIdentificationMode` ordinal during the port).
+- **The library tranche** (models + `Lively.Common` helpers + the library factory)
+  replays a 314-line C# transcript line for line (`tests/goldens/library_csharp.txt`,
+  generated by `tools/csharp_probe library`) — no C# checkout needed to run it, so it
+  is part of the ordinary CI suite rather than an opt-in oracle.
 
 The cross-language test needs the C# probe built first:
 `dotnet build tools/csharp_probe -c Release` (requires the sibling `lively in C#`
@@ -157,9 +204,10 @@ the `FetchContent_Declare` URLs can be swapped back to remote ones.
 
 ## Toolchain note
 
-CI should additionally compile with MSVC (`/W4` + `/permissive-`) and clang-cl
-once available; the code uses only standard C++20 plus Win32 (guarded for
-non-Windows where trivial).
+The suite is built and run on Windows (MSYS2/MinGW-w64) in CI, which is the
+toolchain the Win32 layers target. Compiling under MSVC (`/W4` + `/permissive-`)
+and clang-cl is still desirable as an additional strictness pass — the code uses
+only standard C++20 plus Win32 (guarded for non-Windows where trivial).
 
 **onnxruntime version skew (known, worked around):** MSYS2's
 `mingw-w64-ucrt-x86_64-onnxruntime 1.29.0-1` installs 1.29 headers
@@ -182,4 +230,7 @@ GPL-3.0. The full license text is in [`LICENSE`](LICENSE).
 
 This repository contains only the C++ port. The original C# sources are a separate
 checkout used as the reference oracle for the tests in `tools/csharp_probe` -
-they are not vendored here.
+they are not vendored here, with two exceptions: the oracle *output* fixtures in
+`tests/goldens/`, and the two small `Assets/Plugins/Mpv/LivelyProperties*.json`
+inputs they were generated from (copied so the property-pipeline tests can run
+without the C# checkout). Both are upstream GPL-3.0 content, as is this port.

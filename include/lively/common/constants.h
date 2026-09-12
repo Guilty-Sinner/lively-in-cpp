@@ -82,4 +82,9 @@ std::wstring MiDaSDir(); // BaseDir\Midas
 // (e.g. SettingsModel default WallpaperDir).
 std::string UserLocalAppDataDir();
 
+// Narrow UTF-8 view of common_paths::TempVideoDir() for the filesystem helpers
+// that operate on std::string (the media-wallpaper property fallback in
+// WallpaperLibraryFactory).
+std::string TempVideoDirNarrow();
+
 } // namespace lively::common

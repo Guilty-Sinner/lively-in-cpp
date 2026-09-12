@@ -43,8 +43,15 @@ std::vector<std::pair<std::string, std::string>> load_golden_lines(const char* n
     return out;
 }
 
+// Input fixture for the golden below. Prefer the live upstream asset (so a
+// change in the real C# file is caught), and fall back to the vendored copy
+// captured alongside the golden. The vendored copy is what lets this test run
+// in CI, where the upstream C# tree is not present.
 std::string repo_file(const char* rel) {
-    return std::string(LIVELY_REPO_ROOT) + "/lively in C#/src/Lively/Lively/Assets/Plugins/Mpv/" + rel;
+    const std::string live = std::string(LIVELY_REPO_ROOT) +
+                             "/lively in C#/src/Lively/Lively/Assets/Plugins/Mpv/" + rel;
+    if (std::ifstream(live).good()) return live;
+    return std::string(LIVELY_GOLDENS_DIR) + "/mpv_" + rel;
 }
 
 } // namespace

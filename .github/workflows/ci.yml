@@ -1,0 +1,128 @@
+name: CI
+
+# Two layers, matching the verification story in README.md:
+#   build-test  — compiles the port and runs the self-contained suite (Catch2,
+#                 vendored goldens). No upstream C# checkout required, so it
+#                 runs on every push and pull request.
+#   oracle      — checks out the pinned upstream C# Lively, builds the real
+#                 binaries with dotnet, and runs the differential oracle tests
+#                 (player start-args vs. CommandLineParser 2.9.1, and the C++
+#                 gRPC client against a real C# server). Slower, and only
+#                 meaningful when the toolchain and NuGet are reachable.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+env:
+  # Upstream reference commit the oracle tests were authored against
+  # (rocksdanister/lively). Bumping this is a deliberate act: regenerate the
+  # goldens (`tools/generate_csharp_goldens.md`) in the same change.
+  UPSTREAM_REPO: https://github.com/rocksdanister/lively
+  UPSTREAM_COMMIT: c1036feb664960722e34bf4309042c247d6a909d
+
+jobs:
+  build-test:
+    name: build & test (rpc=${{ matrix.rpc }})
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # RPC off is a supported configuration, not just a degraded one: it
+        # proves the core tranches have no hidden dependency on gRPC.
+        rpc: [ON, OFF]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up MSYS2 (UCRT64 toolchain)
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          install: >-
+            mingw-w64-ucrt-x86_64-gcc
+            mingw-w64-ucrt-x86_64-cmake
+            mingw-w64-ucrt-x86_64-ninja
+            mingw-w64-ucrt-x86_64-grpc
+            mingw-w64-ucrt-x86_64-protobuf
+            mingw-w64-ucrt-x86_64-onnxruntime
+
+      - name: Configure
+        shell: msys2 {0}
+        run: >
+          cmake -S . -B build -G Ninja
+          -DCMAKE_BUILD_TYPE=Release
+          -DCMAKE_PREFIX_PATH=$MINGW_PREFIX
+          -DLIVELY_BUILD_RPC=${{ matrix.rpc }}
+          -DLIVELY_REQUIRE_RPC=${{ matrix.rpc }}
+
+      - name: Build
+        shell: msys2 {0}
+        run: cmake --build build --parallel
+
+      # ctest (a native binary) launches the test exe through the Windows
+      # loader; running it directly from MSYS2 bash instead would trip the
+      # API-set pre-check described in tools/run_tests.ps1.
+      - name: Test
+        shell: msys2 {0}
+        run: ctest --test-dir build --output-on-failure
+
+  oracle:
+    name: differential oracle vs. C# upstream
+    runs-on: windows-latest
+    needs: build-test
+    steps:
+      - uses: actions/checkout@v4
+
+      # The layout matters: the probe project and the CMake defaults both expect
+      # the upstream checkout as a sibling named exactly "lively in C#".
+      - name: Check out upstream C# Lively (reference oracle)
+        shell: pwsh
+        run: |
+          $dest = Join-Path (Split-Path -Parent $env:GITHUB_WORKSPACE) 'lively in C#'
+          git clone --filter=blob:none $env:UPSTREAM_REPO $dest
+          git -C $dest checkout $env:UPSTREAM_COMMIT
+
+      - name: Build the C# probe (real Lively.Models/Common/Grpc.Common)
+        shell: pwsh
+        run: dotnet build tools/csharp_probe -c Release
+
+      - name: Set up MSYS2 (UCRT64 toolchain)
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          install: >-
+            mingw-w64-ucrt-x86_64-gcc
+            mingw-w64-ucrt-x86_64-cmake
+            mingw-w64-ucrt-x86_64-ninja
+            mingw-w64-ucrt-x86_64-grpc
+            mingw-w64-ucrt-x86_64-protobuf
+            mingw-w64-ucrt-x86_64-onnxruntime
+
+      - name: Configure
+        shell: msys2 {0}
+        run: >
+          cmake -S . -B build -G Ninja
+          -DCMAKE_BUILD_TYPE=Release
+          -DCMAKE_PREFIX_PATH=$MINGW_PREFIX
+          -DLIVELY_BUILD_RPC=ON
+          -DLIVELY_REQUIRE_RPC=ON
+
+      - name: Build
+        shell: msys2 {0}
+        run: cmake --build build --parallel
+
+      # The oracle tests are hidden-tagged, so ctest never discovers them: they
+      # are opt-in precisely because they need the upstream binaries. Run them
+      # through the PowerShell runner, which fixes up the DLL search path.
+      - name: Run differential oracle tests
+        shell: pwsh
+        run: |
+          # A native executable's non-zero exit does not throw in PowerShell, so
+          # each run is checked explicitly — otherwise a failing oracle would be
+          # masked by the next one passing.
+          & ./tools/run_tests.ps1 -Filter '[.players-oracle]'
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & ./tools/run_tests.ps1 -Filter '[.crosslang]'
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

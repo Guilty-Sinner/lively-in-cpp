@@ -15,7 +15,9 @@
 // byte-compatible with Newtonsoft's Formatting.Indented output shape; the
 // golden tests pin the exact bytes for the IPC/settings payloads).
 
+#include <lively/common/json_format.h>
 #include <lively/models/ipc_message.h>
+#include <lively/models/lively_info.h>
 #include <lively/models/settings_model.h>
 
 #include <nlohmann/json.hpp>
@@ -32,11 +34,13 @@ using JsonValue = nlohmann::ordered_json;
 
 class JsonUtil {
 public:
-    // C# Write(path, JObject): indented formatting (JObject.ToString default).
+    // C# Write(path, JObject) — File.WriteAllText(path, rss.ToString()):
+    // JObject.ToString() is Formatting.Indented, so CRLF line breaks and NO
+    // trailing newline (both pinned by the `jsonutil.write` oracle line).
     static void Write(const std::string& path, const JsonValue& value) {
         std::ofstream out(path, std::ios::binary | std::ios::trunc);
         if (!out) throw std::runtime_error("cannot open file: " + path);
-        out << value.dump(2) << '\n';
+        out << newtonsoft_indented(value);
     }
 
     static JsonValue ReadJObject(const std::string& path) {
@@ -86,6 +90,24 @@ public:
         std::ofstream out(path, std::ios::binary | std::ios::trunc);
         if (!out) throw std::runtime_error("cannot open file: " + path);
         out << settings.to_json_string();
+    }
+
+    // C# JsonStorage<LivelyInfoModel>.LoadData / .StoreData. C++ cannot overload
+    // on return type, so the generic argument is spelled out in the name.
+    static models::LivelyInfoModel LoadLivelyInfoData(const std::string& path) {
+        const std::string text = read_all(path);
+        try {
+            return models::LivelyInfoModel::from_json_string(text);
+        } catch (const std::exception&) {
+            // C# surfaces JsonReaderException; callers only branch on failure.
+            throw std::runtime_error("json null/corrupt");
+        }
+    }
+
+    static void StoreLivelyInfoData(const std::string& path, const models::LivelyInfoModel& info) {
+        std::ofstream out(path, std::ios::binary | std::ios::trunc);
+        if (!out) throw std::runtime_error("cannot open file: " + path);
+        out << info.to_json_string();
     }
 
 private:
