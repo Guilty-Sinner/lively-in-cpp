@@ -26,7 +26,8 @@ requirements document; every mapping below is deliberate.
 | Lively.Player.CefSharp | 1,346 | `StartArgs` contract **ported + oracle-verified**; window/rendering not started | `src/lively/players` |
 | Lively.ML | 193 | **Ported** — MiDaS depth estimation over the onnxruntime C API with WIC image decode/resize; runtime API-version negotiation (see *Toolchain note*) | `src/lively/ml` |
 | Lively.Common | 9,253 | Remaining: Helpers/{Shell,Hardware,Pinvoke,MVVM}, COM interop — Phase 2 | — |
-| Lively (core) | 15,815 | Remaining: WorkerW desktop integration, per-display placement, wallpaper lifecycle — Phase 2 | — |
+| Lively (core) — placement rules | ~700 of 15,815 | **Ported** — the per/span/duplicate reconciliation from `WinDesktopCore`: orphan detection, the selected-display fallback, the disconnected-screen queue, the wallpaper-rect rebasing and `SaveWallpaperLayout` composition, all as a pure Win32-free planner verified against a C# oracle. The Win32 effects (WorkerW parenting, window geometry, process lifecycle) are **not** ported | `src/lively/core`, `include/lively/core` |
+| Lively (core) | 15,815 | Remaining: WorkerW desktop integration, wallpaper lifecycle, the player host — Phase 2 | — |
 | Lively.UI.Shared / UI.WinUI | 11,284 | Not started (Phase 3, C++/WinRT) | — |
 
 ## Translation map (per `prompt.txt`)
@@ -112,6 +113,23 @@ requirements document; every mapping below is deliberate.
    is not (it has an initializer) — a default-constructed model writes `"Name": null`.
    The fixture masks the entry-assembly version, because that value is build metadata
    (`1.0.0.0` for the probe, `2.2.1.5` for the real app).
+12. **Display placement rules** (`tests/goldens/desktop_layout_csharp.txt`, from
+   `csharp_probe desktoplayout`): the decision half of `WinDesktopCore`, extracted
+   into a pure Win32-free planner (`lively::core`). In the C# it is entangled with
+   `WorkerW` parenting and `SetWindowPos`, so it is unreachable from a test; the
+   probe re-expresses the rules with the LINQ expressions copied verbatim and the
+   port re-expresses them with loops, so the two differ mechanically. The rules
+   that a port silently gets wrong are all covered: `DisplayMonitor.Equals` compares
+   **DeviceId only** (so a display whose resolution changed is still "the same
+   screen"); `IsMultiScreen()` is `Count > 1` and nothing about geometry (so a
+   single off-origin monitor must *not* engage the span branch); `span` removes no
+   orphans; `duplicate` never queues them; the span rect is rebased on the
+   virtual-screen origin, which matters when a monitor sits at a negative
+   coordinate. Writing the fixture immediately caught a divergence in my own
+   scenario (applying the `per` orphan removal to `span`) — which is the point.
+   Note the probe also records that a layout entry with a **null Display** makes
+   the C# throw `NullReferenceException` during restore; the port treats it as
+   "screen missing" and documents the deviation rather than reproducing the crash.
 
 ## Verification strategy
 
@@ -119,8 +137,8 @@ requirements document; every mapping below is deliberate.
   C# binaries (run `dotnet run --project "lively in C#/src/Lively/Lively.Utility.ConsoleDemo"`)
   are compared byte-for-byte against C++ output. Regenerate a specific one with the probe:
   `dotnet run -c Release --project tools/csharp_probe -- <mode>` where `<mode>` is
-  `library` / `layout` / `persist` / `props` / `settings` / `players` / a bare run for the
-  IPC fixtures — see `tools/generate_csharp_goldens.md`.
+  `library` / `layout` / `persist` / `desktoplayout` / `props` / `settings` / `players` / a bare
+  run for the IPC fixtures — see `tools/generate_csharp_goldens.md`.
 - **Differential fuzzing** (`tools/fuzz_differential.py`): the same generated argv is
   fed to the real C# `CommandLineParser` (via `tools/csharp_probe fuzz`) and to the C++
   binary; the canonical outcome lines must match. 4,500+ verb cases and 1,500 player-args
@@ -175,7 +193,7 @@ self-contained (see *Continuous integration*).
 `.github/workflows/ci.yml` implements the two verification layers described above:
 
 - **`build-test`** — MSYS2 UCRT64 toolchain, matrix over `LIVELY_BUILD_RPC=ON|OFF`,
-  `ctest` (87 / 80 cases). **No upstream C# checkout is required**: the oracle
+  `ctest` (92 / 85 cases). **No upstream C# checkout is required**: the oracle
   *goldens* are committed and the LivelyProperty input fixtures are vendored, so
   this runs on every push and pull request.
 - **`oracle`** — checks out upstream Lively at the pinned commit, builds
@@ -206,11 +224,11 @@ Current verified environment: MinGW-w64 GCC 16.1 (WinLibs UCRT, via winget
 `BrechtSanders.WinLibs.POSIX.UCRT`), CMake 4.4, MSYS2 UCRT64 gRPC 1.82 +
 protobuf 35.1 —
 
-- **RPC-off build**: 80 test cases / 771 assertions, all passing.
-- **RPC-on build**: 87 test cases / 879 assertions, all passing (stable across reruns),
+- **RPC-off build**: 85 test cases / 992 assertions, all passing.
+- **RPC-on build**: 92 test cases / 1,100 assertions, all passing (stable across reruns),
   including the `[.crosslang]` C++-client ↔ C#-server oracle test and the
   DesktopCore / DisplayManager / AppUpdater / UserSettings streaming + event tests.
-- **CI-like build** (no C# checkout on the include path): 87 / 879 — the same
+- **CI-like build** (no C# checkout on the include path): 92 / 1,100 — the same
   numbers as RPC-on, which is what makes the self-contained claim real.
 - **Gallery / services / HTTP**: a raw loopback HTTP server exercises the WinHTTP
   layer and the gallery client — token refresh on 401, the `AlreadySubscribed`

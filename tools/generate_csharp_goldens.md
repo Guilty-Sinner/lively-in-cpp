@@ -120,6 +120,48 @@ the absolute path, and `CreateFromDirectory` re-rooting them on read.
 The C++ side replays it in `tests/test_persist.cpp` (tagged `[persist]`, part of
 the ordinary suite — no C# checkout needed).
 
+## Display placement rules (`desktoplayout` mode) — PASSED
+
+`dotnet run -c Release --project tools/csharp_probe -- desktoplayout` writes
+`tests/goldens/desktop_layout_csharp.txt` (49 scenarios): the decision half of
+`Lively/Core/WinDesktopCore.cs` — orphan detection, the selected-display
+fallback, `UpdateWallpaperRect`, `RestoreDisconnectedWallpapers`,
+`RestoreWallpaper` and `SaveWallpaperLayout`.
+
+This fixture is a little different from the others and the difference is worth
+stating. The logic it covers is **not callable** from a probe: it lives inside
+`WinDesktopCore` behind WorkerW parenting and `SetWindowPos`. So the probe
+re-expresses the rules using the LINQ expressions copied verbatim from the source
+(`FindAll`/`Find`/`FirstOrDefault`/`RemoveAll` with the same predicates, in the
+same order), and the C++ port re-expresses them with ordinary loops. The two
+implementations therefore differ mechanically even though the predicates match —
+which is what makes the comparison evidence rather than a tautology. The residual
+risk is a transcription error in the probe's predicates, and it is documented at
+the top of `DesktopLayoutProbe.cs`.
+
+What it pinned, complete with one correction to my own test:
+
+* `DisplayMonitor.Equals` compares **DeviceId only**, so a monitor whose bounds
+  changed counts as the same screen — the disconnected-screen dedupe relies on it.
+* `IsMultiScreen()` is `DisplayMonitors.Count > 1`. A single monitor at a negative
+  origin must not engage the span branch.
+* `span` removes no orphans (a bare `break`), while `duplicate` removes them but
+  never queues them. Applying `per`'s removal unconditionally makes
+  `refresh.twice.span` diverge — which the fixture caught immediately.
+* The span rect is rebased on the virtual-screen origin: with a display at
+  `(-1920, -200)` the union is `4480 x 1640`, not the primary's size.
+* `WallpaperLayoutModel` does **not** override `Equals`, so
+  `wallpapersDisconnected.Contains/Remove(layout)` are *reference* comparisons.
+  The two call sites hand in different kinds of object —
+  `RestoreDisconnectedWallpapers` passes the queue's own entries, the startup path
+  passes freshly deserialized ones — so the same layout file behaves differently
+  depending on how it was reached (`restoreApply.identity.*` vs
+  `restoreApply.fresh.*`). The C++ planner models this with an explicit identity
+  handle rather than letting a value-typed port dedupe where C# does not.
+* A layout entry with a **null Display** throws `NullReferenceException` in the C#
+  (`x.Equals(entry.Display)`); the line is recorded so the port's deliberately
+  gentler handling is a documented deviation rather than a silent difference.
+
 ## Differential fuzzing (CommandLineParser) — PASSED
 
 `tools/fuzz_differential.py` drives the *real* CommandLineParser 2.9.1 (via

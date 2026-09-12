@@ -62,6 +62,10 @@ namespace csharp_probe
             {
                 return PersistProbe.Run();
             }
+            if (args.Length > 0 && args[0] == "desktoplayout")
+            {
+                return DesktopLayoutProbe.Run();
+            }
 
             Emit("LivelyCloseCmd.default", new LivelyCloseCmd());
             Emit("LivelySuspendCmd.default", new LivelySuspendCmd());

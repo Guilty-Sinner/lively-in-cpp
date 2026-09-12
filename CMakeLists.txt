@@ -145,6 +145,13 @@ add_library(lively_utility STATIC
   src/lively/utility/commandline/commandline.cpp
   src/lively/utility/watchdog/watchdog_core.cpp)
 
+# The pure decision half of the core (Lively/Core/WinDesktopCore.cs): which
+# wallpaper belongs on which screen when displays come and go. Deliberately
+# Win32-free so it is testable — see include/lively/core/desktop_layout.h.
+add_library(lively_core STATIC src/lively/core/desktop_layout.cpp)
+target_include_directories(lively_core PUBLIC include)
+target_link_libraries(lively_core PUBLIC lively_models)
+
 # Per-player StartArgs contract (Lively.Player.*) — shares the CommandLineParser port.
 add_library(lively_players STATIC src/lively/players/start_args.cpp)
 target_include_directories(lively_players PUBLIC include)
@@ -240,9 +247,10 @@ if(LIVELY_BUILD_TESTS)
     tests/test_players.cpp
     tests/test_library.cpp
     tests/test_layout.cpp
-    tests/test_persist.cpp)
+    tests/test_persist.cpp
+    tests/test_desktop_layout.cpp)
   target_link_libraries(lively_tests PRIVATE lively_models lively_common lively_utility lively_players
-    Catch2::Catch2WithMain)
+    lively_core Catch2::Catch2WithMain)
   if(LIVELY_BUILD_RPC)
     target_sources(lively_tests PRIVATE tests/test_rpc.cpp)
     target_link_libraries(lively_tests PRIVATE lively_rpc)
